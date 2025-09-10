@@ -45,7 +45,7 @@ class User(AbstractUser):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Limits for {self.agent.business_name}"
+        return f"Limits for {self.national_id}"
 
 # KYC Documents
 class KYCDocument(models.Model):

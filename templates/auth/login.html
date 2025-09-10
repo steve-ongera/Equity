@@ -396,59 +396,52 @@
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
 
-                    <!-- User Type Selector -->
-                    <div class="user-type-selector">
-                        <div class="text-center mb-3">
-                            <small class="text-muted">Select your role</small>
-                        </div>
-                        <div class="d-flex flex-wrap justify-content-center">
-                            <button type="button" class="btn user-type-btn" data-type="customer">
-                                <i class="fas fa-user me-1"></i>Customer
-                            </button>
-                            <button type="button" class="btn user-type-btn" data-type="agent">
-                                <i class="fas fa-store me-1"></i>Agent
-                            </button>
-                            <button type="button" class="btn user-type-btn" data-type="staff">
-                                <i class="fas fa-briefcase me-1"></i>Staff
-                            </button>
-                            <button type="button" class="btn user-type-btn active" data-type="admin">
-                                <i class="fas fa-crown me-1"></i>Admin
-                            </button>
-                        </div>
-                    </div>
+                    
 
                     <!-- Login Form -->
-                    <form id="loginForm" novalidate>
-                        <div class="form-floating">
-                            <input type="text" class="form-control" id="username" name="username" placeholder="Username" required>
+                   <form id="loginForm" method="post" novalidate>
+                        {% csrf_token %}
+
+                        <div class="form-floating mb-3">
+                            <input type="text" class="form-control {% if form.username.errors %}is-invalid{% endif %}" 
+                                id="username" name="username" 
+                                placeholder="Username" value="{{ form.username.value|default:'' }}" required>
                             <label for="username">
                                 <i class="fas fa-user me-2"></i>Admin username or Email
                             </label>
-                            <div class="form-validation-error">Please enter a valid username or email.</div>
+                            {% if form.username.errors %}
+                                <div class="invalid-feedback">
+                                    {{ form.username.errors.0 }}
+                                </div>
+                            {% endif %}
                         </div>
 
-                        <div class="form-floating">
-                            <input type="password" class="form-control" id="password" name="password" placeholder="Password" required>
+                        <div class="form-floating mb-3 position-relative">
+                            <input type="password" class="form-control {% if form.password.errors %}is-invalid{% endif %}" 
+                                id="password" name="password" 
+                                placeholder="Password" required>
                             <label for="password">
                                 <i class="fas fa-lock me-2"></i>Password
                             </label>
-                            <button type="button" class="password-toggle" id="passwordToggle">
+                            <button type="button" class="password-toggle btn btn-sm btn-link position-absolute top-50 end-0 translate-middle-y me-2" id="passwordToggle">
                                 <i class="fas fa-eye"></i>
                             </button>
-                            <div class="form-validation-error">Password is required.</div>
+                            {% if form.password.errors %}
+                                <div class="invalid-feedback">
+                                    {{ form.password.errors.0 }}
+                                </div>
+                            {% endif %}
                         </div>
 
                         <div class="row mb-3">
                             <div class="col-6">
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" id="remember_me" name="remember_me">
-                                    <label class="form-check-label" for="remember_me">
-                                        Remember me
-                                    </label>
+                                    <label class="form-check-label" for="remember_me">Remember me</label>
                                 </div>
                             </div>
                             <div class="col-6 text-end">
-                                <a href="#" class="text-decoration-none" style="color: var(--equity-red);" data-bs-toggle="modal" data-bs-target="#forgotPasswordModal">
+                                <a href="#" class="text-decoration-none" style="color: var(--equity-red);">
                                     <i class="fas fa-key me-1"></i>Forgot Password?
                                 </a>
                             </div>
@@ -456,15 +449,14 @@
 
                         <button type="submit" class="btn btn-login btn-lg w-100 text-white">
                             <span class="btn-text">
-                                <i class="fas fa-sign-in-alt me-2"></i>
-                                Login to Dashboard
+                                <i class="fas fa-sign-in-alt me-2"></i>Login to Dashboard
                             </span>
-                            <span class="loading-spinner">
-                                <i class="fas fa-spinner fa-spin me-2"></i>
-                                Authenticating...
+                            <span class="loading-spinner d-none">
+                                <i class="fas fa-spinner fa-spin me-2"></i>Authenticating...
                             </span>
                         </button>
                     </form>
+
 
                     <div class="forgot-password">
                         <p class="mb-0">
