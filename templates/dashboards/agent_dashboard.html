@@ -1,0 +1,448 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Agent Dashboard - Equity Bank{% endblock %}
+
+{% block extra_css %}
+<style>
+    .limit-card {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border-left: 5px solid var(--equity-red);
+    }
+    
+    .progress-circle {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: conic-gradient(var(--equity-red) 0deg, var(--equity-red) 180deg, #e9ecef 180deg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+    }
+    
+    .progress-inner {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+    }
+    
+    .transaction-summary {
+        background: linear-gradient(135deg, var(--equity-red), var(--equity-red-dark));
+        color: white;
+        border-radius: 15px;
+    }
+    
+    .service-btn {
+        background: white;
+        border: 2px solid #e9ecef;
+        border-radius: 12px;
+        transition: all 0.3s ease;
+        height: 100px;
+    }
+    
+    .service-btn:hover {
+        border-color: var(--equity-red);
+        box-shadow: 0 5px 15px rgba(204, 15, 22, 0.2);
+        transform: translateY(-2px);
+    }
+    
+    .commission-card {
+        background: linear-gradient(135deg, #28a745, #20c997);
+        color: white;
+        border-radius: 15px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-lg-2 col-md-3 p-0">
+            <div class="sidebar">
+                <div class="p-3">
+                    <h5 class="text-muted mb-0">Agent Panel</h5>
+                </div>
+                <nav class="nav flex-column">
+                    <a class="nav-link active" href="{% url 'agent_dashboard' %}">
+                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                    </a>
+                    <a class="nav-link" href="#transactions">
+                        <i class="fas fa-exchange-alt me-2"></i>Transactions
+                    </a>
+                    <a class="nav-link" href="#customers">
+                        <i class="fas fa-users me-2"></i>Customers
+                    </a>
+                    <a class="nav-link" href="#float">
+                        <i class="fas fa-wallet me-2"></i>Float Management
+                    </a>
+                    <a class="nav-link" href="#reports">
+                        <i class="fas fa-chart-bar me-2"></i>Reports
+                    </a>
+                    <a class="nav-link" href="#help">
+                        <i class="fas fa-question-circle me-2"></i>Help & Support
+                    </a>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-lg-10 col-md-9">
+            <div class="main-content">
+                <!-- Header -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h2 class="mb-1">Agent Dashboard</h2>
+                        <p class="text-muted">Welcome, {{ agent.business_name }}</p>
+                        <small class="text-muted">Agent Code: <strong>{{ agent.agent_code }}</strong></small>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-outline-secondary" onclick="location.reload()">
+                            <i class="fas fa-sync-alt me-2"></i>Refresh
+                        </button>
+                        <button class="btn btn-equity" data-bs-toggle="modal" data-bs-target="#quickServiceModal">
+                            <i class="fas fa-plus me-2"></i>New Transaction
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Daily Limits Overview -->
+                <div class="row mb-4">
+                    <div class="col-lg-8">
+                        <div class="limit-card p-4">
+                            <div class="row align-items-center">
+                                <div class="col-md-6">
+                                    <h5 class="mb-3">Daily Transaction Limits</h5>
+                                    <div class="mb-3">
+                                        <div class="d-flex justify-content-between mb-1">
+                                            <span>Daily Used</span>
+                                            <span><strong>KES {{ current_daily_total|floatformat:0|intcomma }}</strong></span>
+                                        </div>
+                                        <div class="progress progress-equity" style="height: 10px;">
+                                            <div class="progress-bar" style="width: {% widthratio current_daily_total daily_limit 100 %}%"></div>
+                                        </div>
+                                        <small class="text-muted">of KES {{ daily_limit|floatformat:0|intcomma }} daily limit</small>
+                                    </div>
+                                    <div class="text-success">
+                                        <strong>Remaining: KES {{ remaining_daily|floatformat:0|intcomma }}</strong>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 text-center">
+                                    <div class="progress-circle mx-auto">
+                                        <div class="progress-inner">
+                                            {% widthratio current_daily_total daily_limit 100 %}%
+                                        </div>
+                                    </div>
+                                    <p class="text-muted mt-2 mb-0">Daily Usage</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-lg-4">
+                        <div class="commission-card p-4 h-100">
+                            <h5 class="mb-3">Today's Earnings</h5>
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    <i class="fas fa-coins fa-3x opacity-50"></i>
+                                </div>
+                                <div>
+                                    <div style="font-size: 1.8rem; font-weight: bold;">KES 2,450</div>
+                                    <div class="opacity-75">Commission earned</div>
+                                    <small class="opacity-75">+15% from yesterday</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Today's Summary -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="transaction-summary p-4">
+                            <h5 class="mb-4">Today's Transaction Summary</h5>
+                            <div class="row text-center">
+                                <div class="col-md-3 mb-3">
+                                    <div class="border-end border-light">
+                                        <h3 class="mb-1">127</h3>
+                                        <p class="mb-0 opacity-75">Total Transactions</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <div class="border-end border-light">
+                                        <h3 class="mb-1">89</h3>
+                                        <p class="mb-0 opacity-75">Deposits</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <div class="border-end border-light">
+                                        <h3 class="mb-1">38</h3>
+                                        <p class="mb-0 opacity-75">Withdrawals</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <h3 class="mb-1">12</h3>
+                                    <p class="mb-0 opacity-75">New Accounts</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Service Shortcuts -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h5 class="mb-3">Quick Services</h5>
+                        <div class="row g-3">
+                            <div class="col-lg-2 col-md-4 col-6">
+                                <button class="service-btn w-100 d-flex flex-column align-items-center justify-content-center" onclick="openService('deposit')">
+                                    <i class="fas fa-arrow-down text-success fa-2x mb-2"></i>
+                                    <span class="fw-bold">Deposit</span>
+                                </button>
+                            </div>
+                            <div class="col-lg-2 col-md-4 col-6">
+                                <button class="service-btn w-100 d-flex flex-column align-items-center justify-content-center" onclick="openService('withdrawal')">
+                                    <i class="fas fa-arrow-up text-danger fa-2x mb-2"></i>
+                                    <span class="fw-bold">Withdrawal</span>
+                                </button>
+                            </div>
+                            <div class="col-lg-2 col-md-4 col-6">
+                                <button class="service-btn w-100 d-flex flex-column align-items-center justify-content-center" onclick="openService('balance')">
+                                    <i class="fas fa-search text-info fa-2x mb-2"></i>
+                                    <span class="fw-bold">Balance Inquiry</span>
+                                </button>
+                            </div>
+                            <div class="col-lg-2 col-md-4 col-6">
+                                <button class="service-btn w-100 d-flex flex-column align-items-center justify-content-center" onclick="openService('account')">
+                                    <i class="fas fa-user-plus text-primary fa-2x mb-2"></i>
+                                    <span class="fw-bold">New Account</span>
+                                </button>
+                            </div>
+                            <div class="col-lg-2 col-md-4 col-6">
+                                <button class="service-btn w-100 d-flex flex-column align-items-center justify-content-center" onclick="openService('statement')">
+                                    <i class="fas fa-file-alt text-warning fa-2x mb-2"></i>
+                                    <span class="fw-bold">Statement</span>
+                                </button>
+                            </div>
+                            <div class="col-lg-2 col-md-4 col-6">
+                                <button class="service-btn w-100 d-flex flex-column align-items-center justify-content-center" onclick="openService('more')">
+                                    <i class="fas fa-ellipsis-h text-secondary fa-2x mb-2"></i>
+                                    <span class="fw-bold">More Services</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity and Float Status -->
+                <div class="row">
+                    <div class="col-lg-8 mb-4">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-header bg-white border-bottom-0">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0">Recent Transactions</h5>
+                                    <button class="btn btn-sm btn-outline-secondary">
+                                        <i class="fas fa-history me-2"></i>View All
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-hover mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Time</th>
+                                                <th>Type</th>
+                                                <th>Account</th>
+                                                <th>Amount</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><small>10:45 AM</small></td>
+                                                <td><span class="badge bg-success">Deposit</span></td>
+                                                <td>1234567890</td>
+                                                <td class="text-success fw-bold">+KES 5,000</td>
+                                                <td><i class="fas fa-check-circle text-success"></i></td>
+                                            </tr>
+                                            <tr>
+                                                <td><small>10:42 AM</small></td>
+                                                <td><span class="badge bg-danger">Withdrawal</span></td>
+                                                <td>9876543210</td>
+                                                <td class="text-danger fw-bold">-KES 2,500</td>
+                                                <td><i class="fas fa-check-circle text-success"></i></td>
+                                            </tr>
+                                            <tr>
+                                                <td><small>10:38 AM</small></td>
+                                                <td><span class="badge bg-info">Balance</span></td>
+                                                <td>5555555555</td>
+                                                <td>-</td>
+                                                <td><i class="fas fa-check-circle text-success"></i></td>
+                                            </tr>
+                                            <tr>
+                                                <td><small>10:35 AM</small></td>
+                                                <td><span class="badge bg-success">Deposit</span></td>
+                                                <td>1111111111</td>
+                                                <td class="text-success fw-bold">+KES 15,000</td>
+                                                <td><i class="fas fa-check-circle text-success"></i></td>
+                                            </tr>
+                                            <tr>
+                                                <td><small>10:30 AM</small></td>
+                                                <td><span class="badge bg-primary">New Account</span></td>
+                                                <td>2222222222</td>
+                                                <td>-</td>
+                                                <td><i class="fas fa-check-circle text-success"></i></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-4 mb-4">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-header bg-white border-bottom-0">
+                                <h5 class="mb-0">Float Status</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="text-center mb-4">
+                                    <div class="display-6 text-success fw-bold">KES 75,000</div>
+                                    <p class="text-muted">Available Float</p>
+                                </div>
+                                
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-outline-success">
+                                        <i class="fas fa-plus me-2"></i>Request Float
+                                    </button>
+                                    <button class="btn btn-outline-info">
+                                        <i class="fas fa-history me-2"></i>Float History
+                                    </button>
+                                </div>
+
+                                <hr class="my-4">
+
+                                <div class="small">
+                                    <h6 class="mb-3">Quick Stats</h6>
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Today's Volume:</span>
+                                        <strong>KES 127,500</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Commission Rate:</span>
+                                        <strong>0.5%</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between">
+                                        <span>Active Since:</span>
+                                        <strong>{{ agent.created_at|date:"M Y" }}</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Service Modal -->
+<div class="modal fade" id="quickServiceModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">New Transaction</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <button class="service-btn w-100 p-4" onclick="selectService('deposit')">
+                            <i class="fas fa-arrow-down text-success fa-3x mb-3"></i>
+                            <h5>Cash Deposit</h5>
+                            <p class="text-muted mb-0">Deposit cash to customer account</p>
+                        </button>
+                    </div>
+                    <div class="col-md-6">
+                        <button class="service-btn w-100 p-4" onclick="selectService('withdrawal')">
+                            <i class="fas fa-arrow-up text-danger fa-3x mb-3"></i>
+                            <h5>Cash Withdrawal</h5>
+                            <p class="text-muted mb-0">Withdraw cash from customer account</p>
+                        </button>
+                    </div>
+                    <div class="col-md-6">
+                        <button class="service-btn w-100 p-4" onclick="selectService('balance')">
+                            <i class="fas fa-search text-info fa-3x mb-3"></i>
+                            <h5>Balance Inquiry</h5>
+                            <p class="text-muted mb-0">Check account balance</p>
+                        </button>
+                    </div>
+                    <div class="col-md-6">
+                        <button class="service-btn w-100 p-4" onclick="selectService('account')">
+                            <i class="fas fa-user-plus text-primary fa-3x mb-3"></i>
+                            <h5>Open Account</h5>
+                            <p class="text-muted mb-0">Register new customer account</p>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openService(service) {
+    switch(service) {
+        case 'deposit':
+            alert('Opening Cash Deposit service...');
+            break;
+        case 'withdrawal':
+            alert('Opening Cash Withdrawal service...');
+            break;
+        case 'balance':
+            alert('Opening Balance Inquiry service...');
+            break;
+        case 'account':
+            alert('Opening New Account registration...');
+            break;
+        case 'statement':
+            alert('Opening Statement request...');
+            break;
+        default:
+            alert('Opening ' + service + ' service...');
+    }
+}
+
+function selectService(service) {
+    document.getElementById('quickServiceModal').querySelector('.btn-close').click();
+    openService(service);
+}
+
+// Update progress circle based on usage percentage
+document.addEventListener('DOMContentLoaded', function() {
+    const usagePercent = {% widthratio current_daily_total daily_limit 100 %};
+    const progressCircle = document.querySelector('.progress-circle');
+    if (progressCircle) {
+        const rotation = (usagePercent / 100) * 360;
+        progressCircle.style.background = `conic-gradient(var(--equity-red) 0deg, var(--equity-red) ${rotation}deg, #e9ecef ${rotation}deg)`;
+    }
+});
+
+// Auto-refresh every 60 seconds
+setInterval(function() {
+    console.log('Auto-refreshing agent data...');
+    // In a real application, you would update the counters here
+}, 60000);
+</script>
+{% endblock %}

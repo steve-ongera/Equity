@@ -1,0 +1,364 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Staff Dashboard - Equity Bank{% endblock %}
+
+{% block extra_css %}
+<style>
+    .task-card {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        transition: all 0.3s ease;
+    }
+    
+    .task-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+    
+    .priority-badge {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 20px;
+    }
+    
+    .transaction-row:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .action-btn {
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+    }
+    
+    .action-btn:hover {
+        transform: translateY(-1px);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-lg-2 col-md-3 p-0">
+            <div class="sidebar">
+                <div class="p-3">
+                    <h5 class="text-muted mb-0">Staff Panel</h5>
+                </div>
+                <nav class="nav flex-column">
+                    <a class="nav-link active" href="{% url 'staff_dashboard' %}">
+                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                    </a>
+                    <a class="nav-link" href="#kyc">
+                        <i class="fas fa-id-card me-2"></i>KYC Verification
+                    </a>
+                    <a class="nav-link" href="#support">
+                        <i class="fas fa-headset me-2"></i>Support Tickets
+                    </a>
+                    <a class="nav-link" href="#accounts">
+                        <i class="fas fa-university me-2"></i>Account Management
+                    </a>
+                    <a class="nav-link" href="#transactions">
+                        <i class="fas fa-exchange-alt me-2"></i>Transaction Review
+                    </a>
+                    <a class="nav-link" href="#reports">
+                        <i class="fas fa-chart-bar me-2"></i>Reports
+                    </a>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-lg-10 col-md-9">
+            <div class="main-content">
+                <!-- Header -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h2 class="mb-1">Staff Dashboard</h2>
+                        <p class="text-muted">Good morning, {{ user.get_full_name|default:user.username }}</p>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-outline-secondary" onclick="location.reload()">
+                            <i class="fas fa-sync-alt me-2"></i>Refresh
+                        </button>
+                        <button class="btn btn-equity" data-bs-toggle="modal" data-bs-target="#quickActionsModal">
+                            <i class="fas fa-bolt me-2"></i>Quick Actions
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Task Summary Cards -->
+                <div class="row mb-4">
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="task-card p-4 text-center">
+                            <div class="stat-icon mx-auto mb-3" style="width: 60px; height: 60px; background: rgba(255, 193, 7, 0.1); color: #ffc107;">
+                                <i class="fas fa-id-card"></i>
+                            </div>
+                            <h3 class="text-warning">{{ pending_kyc }}</h3>
+                            <p class="text-muted mb-0">Pending KYC</p>
+                            <button class="btn btn-sm btn-outline-warning mt-2" onclick="showKYCTasks()">
+                                Review Now
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="task-card p-4 text-center">
+                            <div class="stat-icon mx-auto mb-3" style="width: 60px; height: 60px; background: rgba(220, 53, 69, 0.1); color: #dc3545;">
+                                <i class="fas fa-ticket-alt"></i>
+                            </div>
+                            <h3 class="text-danger">{{ support_tickets }}</h3>
+                            <p class="text-muted mb-0">Open Tickets</p>
+                            <button class="btn btn-sm btn-outline-danger mt-2" onclick="showSupportTickets()">
+                                Handle Tickets
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="task-card p-4 text-center">
+                            <div class="stat-icon mx-auto mb-3" style="width: 60px; height: 60px; background: rgba(40, 167, 69, 0.1); color: #28a745;">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <h3 class="text-success">15</h3>
+                            <p class="text-muted mb-0">Tasks Completed Today</p>
+                            <button class="btn btn-sm btn-outline-success mt-2">
+                                View Details
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="task-card p-4 text-center">
+                            <div class="stat-icon mx-auto mb-3" style="width: 60px; height: 60px; background: rgba(0, 123, 255, 0.1); color: #007bff;">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <h3 class="text-primary">4</h3>
+                            <p class="text-muted mb-0">Pending Approvals</p>
+                            <button class="btn btn-sm btn-outline-primary mt-2">
+                                Review
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Content Areas -->
+                <div class="row">
+                    <!-- Recent Transactions -->
+                    <div class="col-lg-8 mb-4">
+                        <div class="task-card">
+                            <div class="card-header bg-transparent border-bottom-0 p-4">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0">Recent Transactions</h5>
+                                    <div class="d-flex gap-2">
+                                        <select class="form-select form-select-sm" style="width: auto;">
+                                            <option>All Types</option>
+                                            <option>Deposits</option>
+                                            <option>Withdrawals</option>
+                                            <option>Transfers</option>
+                                        </select>
+                                        <button class="btn btn-sm btn-outline-secondary">
+                                            <i class="fas fa-filter"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-hover mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>Transaction ID</th>
+                                                <th>Account</th>
+                                                <th>Type</th>
+                                                <th>Amount</th>
+                                                <th>Status</th>
+                                                <th>Time</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for transaction in recent_transactions %}
+                                            <tr class="transaction-row">
+                                                <td>
+                                                    <code class="text-muted">{{ transaction.transaction_id }}</code>
+                                                </td>
+                                                <td>
+                                                    <strong>{{ transaction.account.account_number }}</strong>
+                                                    <div class="small text-muted">{{ transaction.account.customer.username }}</div>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-light text-dark">
+                                                        {{ transaction.get_transaction_type_display }}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <strong class="{% if transaction.transaction_type == 'deposit' %}text-success{% else %}text-danger{% endif %}">
+                                                        KES {{ transaction.amount|floatformat:0|intcomma }}
+                                                    </strong>
+                                                </td>
+                                                <td>
+                                                    {% if transaction.status == 'completed' %}
+                                                        <span class="badge bg-success">Completed</span>
+                                                    {% elif transaction.status == 'pending' %}
+                                                        <span class="badge bg-warning">Pending</span>
+                                                    {% else %}
+                                                        <span class="badge bg-danger">Failed</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <small class="text-muted">{{ transaction.created_at|timesince }} ago</small>
+                                                </td>
+                                                <td>
+                                                    <button class="action-btn btn-primary" onclick="viewTransaction('{{ transaction.transaction_id }}')">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            {% empty %}
+                                            <tr>
+                                                <td colspan="7" class="text-center py-4">
+                                                    <div class="text-muted">No recent transactions</div>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tasks Panel -->
+                    <div class="col-lg-4 mb-4">
+                        <div class="task-card h-100">
+                            <div class="card-header bg-transparent border-bottom-0 p-4">
+                                <h5 class="mb-0">Today's Tasks</h5>
+                            </div>
+                            <div class="card-body">
+                                <!-- KYC Tasks -->
+                                <div class="mb-4">
+                                    <h6 class="text-muted mb-3">KYC Verification</h6>
+                                    <div class="d-flex justify-content-between align-items-center p-3 bg-light rounded mb-2">
+                                        <div>
+                                            <strong>Card Block Request</strong>
+                                            <div class="small text-muted">Account: 1234567890</div>
+                                        </div>
+                                        <span class="priority-badge bg-danger text-white">Urgent</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center p-3 bg-light rounded mb-2">
+                                        <div>
+                                            <strong>Balance Inquiry Issue</strong>
+                                            <div class="small text-muted">Mobile App Error</div>
+                                        </div>
+                                        <span class="priority-badge bg-secondary text-white">Low</span>
+                                    </div>
+                                </div>
+
+                                <!-- Quick Actions -->
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-equity btn-sm">
+                                        <i class="fas fa-plus me-2"></i>Create New Task
+                                    </button>
+                                    <button class="btn btn-outline-secondary btn-sm">
+                                        <i class="fas fa-list me-2"></i>View All Tasks
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions Modal -->
+<div class="modal fade" id="quickActionsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Quick Actions</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-6">
+                        <button class="btn btn-outline-primary w-100 p-3">
+                            <i class="fas fa-id-card d-block mb-2" style="font-size: 1.5rem;"></i>
+                            Verify KYC
+                        </button>
+                    </div>
+                    <div class="col-6">
+                        <button class="btn btn-outline-success w-100 p-3">
+                            <i class="fas fa-user-plus d-block mb-2" style="font-size: 1.5rem;"></i>
+                            New Account
+                        </button>
+                    </div>
+                    <div class="col-6">
+                        <button class="btn btn-outline-danger w-100 p-3">
+                            <i class="fas fa-ban d-block mb-2" style="font-size: 1.5rem;"></i>
+                            Block Card
+                        </button>
+                    </div>
+                    <div class="col-6">
+                        <button class="btn btn-outline-warning w-100 p-3">
+                            <i class="fas fa-ticket-alt d-block mb-2" style="font-size: 1.5rem;"></i>
+                            New Ticket
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function showKYCTasks() {
+    // Implementation for showing KYC tasks
+    alert('Redirecting to KYC verification page...');
+}
+
+function showSupportTickets() {
+    // Implementation for showing support tickets
+    alert('Redirecting to support tickets page...');
+}
+
+function viewTransaction(transactionId) {
+    // Implementation for viewing transaction details
+    alert('Viewing transaction: ' + transactionId);
+}
+
+// Auto-refresh every 30 seconds
+setInterval(function() {
+    // Update counters and recent data
+    console.log('Auto-refreshing data...');
+}, 30000);
+</script>
+{% endblock %}">
+                                        <div>
+                                            <strong>National ID Review</strong>
+                                            <div class="small text-muted">John Doe - ID: 12345678</div>
+                                        </div>
+                                        <span class="priority-badge bg-warning text-dark">High</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center p-3 bg-light rounded mb-2">
+                                        <div>
+                                            <strong>Business Permit</strong>
+                                            <div class="small text-muted">Jane Smith - Business ABC</div>
+                                        </div>
+                                        <span class="priority-badge bg-info text-white">Medium</span>
+                                    </div>
+                                </div>
+
+                                <!-- Support Tasks -->
+                                <div class="mb-4">
+                                    <h6 class="text-muted mb-3">Support Tickets</h6>
+                                    <div class="d-flex justify-content-between align-items-center p-3 bg-light rounded mb-2

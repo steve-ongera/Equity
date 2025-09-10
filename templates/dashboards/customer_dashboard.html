@@ -1,0 +1,543 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}My Account - Equity Bank{% endblock %}
+
+{% block extra_css %}
+<style>
+    .account-card {
+        background: linear-gradient(135deg, var(--equity-red), var(--equity-red-dark));
+        color: white;
+        border-radius: 20px;
+        overflow: hidden;
+        position: relative;
+    }
+    
+    .account-card::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 200%;
+        height: 200%;
+        background: rgba(255,255,255,0.1);
+        border-radius: 50%;
+        transform: rotate(45deg);
+    }
+    
+    .balance-display {
+        font-size: 2.5rem;
+        font-weight: 700;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+    
+    .service-card {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        transition: all 0.3s ease;
+        border: 1px solid transparent;
+    }
+    
+    .service-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        border-color: var(--equity-red);
+    }
+    
+    .transaction-item {
+        padding: 1rem;
+        border-radius: 10px;
+        margin-bottom: 0.5rem;
+        transition: background-color 0.3s ease;
+    }
+    
+    .transaction-item:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .quick-action {
+        background: white;
+        border: 2px solid #e9ecef;
+        border-radius: 12px;
+        height: 80px;
+        transition: all 0.3s ease;
+    }
+    
+    .quick-action:hover {
+        border-color: var(--equity-red);
+        background: var(--equity-red);
+        color: white;
+        transform: translateY(-2px);
+    }
+    
+    .notification-badge {
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        background: #dc3545;
+        color: white;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-lg-2 col-md-3 p-0">
+            <div class="sidebar">
+                <div class="p-3">
+                    <h5 class="text-muted mb-0">My Banking</h5>
+                </div>
+                <nav class="nav flex-column">
+                    <a class="nav-link active" href="{% url 'customer_dashboard' %}">
+                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                    </a>
+                    <a class="nav-link" href="#accounts">
+                        <i class="fas fa-university me-2"></i>My Accounts
+                    </a>
+                    <a class="nav-link" href="#transfer">
+                        <i class="fas fa-exchange-alt me-2"></i>Transfer Money
+                    </a>
+                    <a class="nav-link" href="#bills">
+                        <i class="fas fa-file-invoice-dollar me-2"></i>Pay Bills
+                    </a>
+                    <a class="nav-link" href="#loans">
+                        <i class="fas fa-hand-holding-usd me-2"></i>Loans
+                    </a>
+                    <a class="nav-link" href="#cards">
+                        <i class="fas fa-credit-card me-2"></i>Cards
+                    </a>
+                    <a class="nav-link" href="#statements">
+                        <i class="fas fa-file-alt me-2"></i>Statements
+                    </a>
+                    <a class="nav-link" href="#profile">
+                        <i class="fas fa-user me-2"></i>Profile
+                    </a>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-lg-10 col-md-9">
+            <div class="main-content">
+                <!-- Header -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h2 class="mb-1">Welcome back, {{ user.first_name|default:user.username }}!</h2>
+                        <p class="text-muted">Here's your account overview for today</p>
+                    </div>
+                    <div class="d-flex gap-2 align-items-center">
+                        <div class="position-relative">
+                            <button class="btn btn-outline-secondary">
+                                <i class="fas fa-bell me-2"></i>Notifications
+                            </button>
+                            <div class="notification-badge">3</div>
+                        </div>
+                        <button class="btn btn-equity" data-bs-toggle="modal" data-bs-target="#quickTransferModal">
+                            <i class="fas fa-paper-plane me-2"></i>Quick Transfer
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Account Overview Cards -->
+                <div class="row mb-4">
+                    {% for account in accounts %}
+                    <div class="col-lg-4 col-md-6 mb-3">
+                        <div class="account-card p-4 position-relative">
+                            <div class="position-relative" style="z-index: 2;">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <div>
+                                        <h6 class="mb-1 opacity-75">{{ account.account_type.name }}</h6>
+                                        <div class="small opacity-75">{{ account.account_number }}</div>
+                                    </div>
+                                    <div class="text-end">
+                                        <i class="fas fa-university fa-2x opacity-50"></i>
+                                    </div>
+                                </div>
+                                <div class="balance-display">KES {{ account.balance|floatformat:0|intcomma }}</div>
+                                <div class="mt-3">
+                                    <small class="opacity-75">Available Balance</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="col-12">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            No accounts found. Please contact customer service to open an account.
+                        </div>
+                    </div>
+                    {% endfor %}
+                    
+                    <!-- Total Balance Card -->
+                    <div class="col-lg-4 col-md-6 mb-3">
+                        <div class="service-card p-4 text-center h-100 d-flex flex-column justify-content-center">
+                            <h5 class="text-muted mb-2">Total Balance</h5>
+                            <div class="display-6 text-success fw-bold">KES {{ total_balance|floatformat:0|intcomma }}</div>
+                            <small class="text-muted">Across all accounts</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h5 class="mb-3">Quick Actions</h5>
+                        <div class="row g-3">
+                            <div class="col-lg-2 col-md-3 col-6">
+                                <button class="quick-action w-100 d-flex flex-column align-items-center justify-content-center" onclick="quickAction('transfer')">
+                                    <i class="fas fa-exchange-alt fa-2x mb-2"></i>
+                                    <span class="small fw-bold">Transfer</span>
+                                </button>
+                            </div>
+                            <div class="col-lg-2 col-md-3 col-6">
+                                <button class="quick-action w-100 d-flex flex-column align-items-center justify-content-center" onclick="quickAction('bills')">
+                                    <i class="fas fa-file-invoice-dollar fa-2x mb-2"></i>
+                                    <span class="small fw-bold">Pay Bills</span>
+                                </button>
+                            </div>
+                            <div class="col-lg-2 col-md-3 col-6">
+                                <button class="quick-action w-100 d-flex flex-column align-items-center justify-content-center" onclick="quickAction('airtime')">
+                                    <i class="fas fa-mobile-alt fa-2x mb-2"></i>
+                                    <span class="small fw-bold">Buy Airtime</span>
+                                </button>
+                            </div>
+                            <div class="col-lg-2 col-md-3 col-6">
+                                <button class="quick-action w-100 d-flex flex-column align-items-center justify-content-center" onclick="quickAction('statement')">
+                                    <i class="fas fa-file-alt fa-2x mb-2"></i>
+                                    <span class="small fw-bold">Statement</span>
+                                </button>
+                            </div>
+                            <div class="col-lg-2 col-md-3 col-6">
+                                <button class="quick-action w-100 d-flex flex-column align-items-center justify-content-center" onclick="quickAction('loan')">
+                                    <i class="fas fa-hand-holding-usd fa-2x mb-2"></i>
+                                    <span class="small fw-bold">Apply Loan</span>
+                                </button>
+                            </div>
+                            <div class="col-lg-2 col-md-3 col-6">
+                                <button class="quick-action w-100 d-flex flex-column align-items-center justify-content-center" onclick="quickAction('support')">
+                                    <i class="fas fa-headset fa-2x mb-2"></i>
+                                    <span class="small fw-bold">Support</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Content Row -->
+                <div class="row">
+                    <!-- Recent Transactions -->
+                    <div class="col-lg-8 mb-4">
+                        <div class="service-card">
+                            <div class="card-header bg-white border-bottom">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0">Recent Transactions</h5>
+                                    <div class="d-flex gap-2">
+                                        <select class="form-select form-select-sm" style="width: auto;">
+                                            <option>All Accounts</option>
+                                            {% for account in accounts %}
+                                            <option>{{ account.account_number }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <button class="btn btn-sm btn-outline-secondary">
+                                            <i class="fas fa-download me-1"></i>Export
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body p-0">
+                                {% for transaction in recent_transactions %}
+                                <div class="transaction-item border-bottom">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div class="d-flex align-items-center">
+                                            <div class="me-3">
+                                                {% if transaction.transaction_type == 'deposit' %}
+                                                    <div class="rounded-circle bg-success bg-opacity-10 p-2">
+                                                        <i class="fas fa-arrow-down text-success"></i>
+                                                    </div>
+                                                {% elif transaction.transaction_type == 'withdrawal' %}
+                                                    <div class="rounded-circle bg-danger bg-opacity-10 p-2">
+                                                        <i class="fas fa-arrow-up text-danger"></i>
+                                                    </div>
+                                                {% elif transaction.transaction_type == 'transfer' %}
+                                                    <div class="rounded-circle bg-primary bg-opacity-10 p-2">
+                                                        <i class="fas fa-exchange-alt text-primary"></i>
+                                                    </div>
+                                                {% else %}
+                                                    <div class="rounded-circle bg-secondary bg-opacity-10 p-2">
+                                                        <i class="fas fa-file-invoice text-secondary"></i>
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                            <div>
+                                                <div class="fw-bold">{{ transaction.get_transaction_type_display }}</div>
+                                                <div class="small text-muted">{{ transaction.description|truncatechars:50 }}</div>
+                                                <div class="small text-muted">{{ transaction.created_at|date:"M d, Y H:i" }}</div>
+                                            </div>
+                                        </div>
+                                        <div class="text-end">
+                                            <div class="fw-bold {% if transaction.transaction_type == 'deposit' %}text-success{% else %}text-danger{% endif %}">
+                                                {% if transaction.transaction_type == 'deposit' %}+{% else %}-{% endif %}KES {{ transaction.amount|floatformat:0|intcomma }}
+                                            </div>
+                                            <div class="small">
+                                                {% if transaction.status == 'completed' %}
+                                                    <span class="badge bg-success">Completed</span>
+                                                {% elif transaction.status == 'pending' %}
+                                                    <span class="badge bg-warning">Pending</span>
+                                                {% else %}
+                                                    <span class="badge bg-danger">Failed</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% empty %}
+                                <div class="p-4 text-center">
+                                    <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
+                                    <p class="text-muted">No transactions yet</p>
+                                    <button class="btn btn-outline-primary" onclick="quickAction('transfer')">
+                                        Make your first transaction
+                                    </button>
+                                </div>
+                                {% endfor %}
+                                
+                                {% if recent_transactions %}
+                                <div class="p-3 text-center border-top">
+                                    <button class="btn btn-link text-decoration-none">
+                                        View All Transactions <i class="fas fa-arrow-right ms-1"></i>
+                                    </button>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sidebar Content -->
+                    <div class="col-lg-4 mb-4">
+                        <!-- Account Services -->
+                        <div class="service-card mb-4">
+                            <div class="card-header bg-white border-bottom">
+                                <h6 class="mb-0">Account Services</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-outline-primary btn-sm" onclick="quickAction('statement')">
+                                        <i class="fas fa-file-alt me-2"></i>Request Statement
+                                    </button>
+                                    <button class="btn btn-outline-success btn-sm" onclick="quickAction('card')">
+                                        <i class="fas fa-credit-card me-2"></i>Request Card
+                                    </button>
+                                    <button class="btn btn-outline-info btn-sm" onclick="quickAction('checkbook')">
+                                        <i class="fas fa-book me-2"></i>Order Checkbook
+                                    </button>
+                                    <button class="btn btn-outline-warning btn-sm" onclick="quickAction('limits')">
+                                        <i class="fas fa-cog me-2"></i>Manage Limits
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Notifications -->
+                        <div class="service-card mb-4">
+                            <div class="card-header bg-white border-bottom">
+                                <h6 class="mb-0">Notifications</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-flex align-items-start mb-3">
+                                    <div class="me-3">
+                                        <div class="rounded-circle bg-primary bg-opacity-10 p-2">
+                                            <i class="fas fa-info-circle text-primary"></i>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="fw-bold">New Feature Available</div>
+                                        <div class="small text-muted">Try our new mobile money transfer service</div>
+                                        <div class="small text-muted">2 hours ago</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-flex align-items-start mb-3">
+                                    <div class="me-3">
+                                        <div class="rounded-circle bg-success bg-opacity-10 p-2">
+                                            <i class="fas fa-check-circle text-success"></i>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="fw-bold">Transaction Successful</div>
+                                        <div class="small text-muted">Transfer of KES 5,000 completed</div>
+                                        <div class="small text-muted">5 hours ago</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-flex align-items-start">
+                                    <div class="me-3">
+                                        <div class="rounded-circle bg-warning bg-opacity-10 p-2">
+                                            <i class="fas fa-exclamation-triangle text-warning"></i>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="fw-bold">Security Alert</div>
+                                        <div class="small text-muted">Login from new device detected</div>
+                                        <div class="small text-muted">1 day ago</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="text-center mt-3">
+                                    <button class="btn btn-link btn-sm text-decoration-none">
+                                        View All Notifications
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Support -->
+                        <div class="service-card">
+                            <div class="card-header bg-white border-bottom">
+                                <h6 class="mb-0">Need Help?</h6>
+                            </div>
+                            <div class="card-body text-center">
+                                <i class="fas fa-headset fa-2x text-muted mb-3"></i>
+                                <p class="text-muted">Our customer service team is here to help you 24/7</p>
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-outline-primary btn-sm">
+                                        <i class="fas fa-phone me-2"></i>Call Us
+                                    </button>
+                                    <button class="btn btn-outline-success btn-sm">
+                                        <i class="fas fa-comment me-2"></i>Live Chat
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Transfer Modal -->
+<div class="modal fade" id="quickTransferModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Quick Transfer</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="quickTransferForm">
+                    <div class="mb-3">
+                        <label class="form-label">From Account</label>
+                        <select class="form-select" required>
+                            <option value="">Select Account</option>
+                            {% for account in accounts %}
+                            <option value="{{ account.id }}">{{ account.account_number }} - KES {{ account.balance|floatformat:0|intcomma }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">To Account</label>
+                        <input type="text" class="form-control" placeholder="Enter account number" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Amount</label>
+                        <div class="input-group">
+                            <span class="input-group-text">KES</span>
+                            <input type="number" class="form-control" placeholder="0.00" min="1" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <input type="text" class="form-control" placeholder="Optional">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-equity" onclick="processTransfer()">
+                    <i class="fas fa-paper-plane me-2"></i>Send Money
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function quickAction(action) {
+    switch(action) {
+        case 'transfer':
+            document.getElementById('quickTransferModal').querySelector('[data-bs-toggle="modal"]') || 
+            new bootstrap.Modal(document.getElementById('quickTransferModal')).show();
+            break;
+        case 'bills':
+            alert('Redirecting to bill payment service...');
+            break;
+        case 'airtime':
+            alert('Opening airtime purchase...');
+            break;
+        case 'statement':
+            alert('Generating account statement...');
+            break;
+        case 'loan':
+            alert('Opening loan application...');
+            break;
+        case 'support':
+            alert('Connecting to customer support...');
+            break;
+        default:
+            alert('Opening ' + action + ' service...');
+    }
+}
+
+function processTransfer() {
+    // Basic form validation
+    const form = document.getElementById('quickTransferForm');
+    const formData = new FormData(form);
+    
+    // Show loading state
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+    btn.disabled = true;
+    
+    // Simulate processing
+    setTimeout(() => {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        
+        // Close modal and show success message
+        bootstrap.Modal.getInstance(document.getElementById('quickTransferModal')).hide();
+        alert('Transfer completed successfully!');
+        
+        // In a real application, you would refresh the page or update the transaction list
+        location.reload();
+    }, 2000);
+}
+
+// Initialize tooltips and popovers
+document.addEventListener('DOMContentLoaded', function() {
+    // Enable Bootstrap tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
+    // Auto-refresh account balances every 5 minutes
+    setInterval(function() {
+        console.log('Auto-refreshing account data...');
+        // In a real application, you would make an AJAX call to update balances
+    }, 300000);
+});
+</script>
+{% endblock %}

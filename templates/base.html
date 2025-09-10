@@ -1,9 +1,12 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Equity Bank Admin{% endblock %}</title>
+    <link rel="icon" type="image/png" href="{% static 'img/equity_favicon.png' %}">
+
     
     <!-- Bootstrap CSS -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
@@ -278,6 +281,15 @@
             border-color: var(--equity-red-dark);
             color: white;
         }
+
+        .navbar .nav-link img {
+            width: 35px;              /* Adjust size (25–45px works well for navbars) */
+            height: 35px;
+            object-fit: cover;        /* Ensures the image scales without distortion */
+            border-radius: 50%;       /* Makes it perfectly round */
+            border: 2px solid #f8f9fa;/* Optional: adds a subtle border (matches Bootstrap light navbar) */
+        }
+
     </style>
 
     {% block extra_css %}{% endblock %}
@@ -339,14 +351,14 @@
                 <!-- User Profile -->
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
-                        <img src="https://via.placeholder.com/32x32" class="rounded-circle me-2" alt="Admin">
+                        <img src="{% static 'img/profile.png'%}" class="rounded-circle me-2" alt="Admin">
                         <span class="d-none d-md-inline">Admin</span>
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end">
                         <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i>Profile</a></li>
                         <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Settings</a></li>
                         <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="#"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                        <li><a class="dropdown-item" href="{% url 'logout'%}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
                     </ul>
                 </li>
             </ul>
