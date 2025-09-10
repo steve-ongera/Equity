@@ -315,7 +315,7 @@
             color: #dc3545;
             font-size: 0.875rem;
             margin-top: 0.25rem;
-            display: none;
+            display: block;
         }
 
         .form-control.is-invalid {
@@ -389,35 +389,35 @@
                         Welcome Back
                     </h2>
 
-                    <!-- Demo Alert -->
-                    <div class="alert alert-info alert-dismissible fade show" role="alert">
-                        <i class="fas fa-info-circle me-2"></i>
-                        This is a demo login page. Use any credentials to test.
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-
-                    
+                    <!-- Django Messages -->
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                <i class="fas fa-{% if message.tags == 'error' %}exclamation-circle{% elif message.tags == 'success' %}check-circle{% else %}info-circle{% endif %} me-2"></i>
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
 
                     <!-- Login Form -->
-                   <form id="loginForm" method="post" novalidate>
+                    <form id="loginForm" method="post" novalidate>
                         {% csrf_token %}
-
+                        
                         <div class="form-floating mb-3">
-                            <input type="text" class="form-control {% if form.username.errors %}is-invalid{% endif %}" 
+                            <input type="text" class="form-control" 
                                 id="username" name="username" 
-                                placeholder="Username" value="{{ form.username.value|default:'' }}" required>
+                                placeholder="Username" required>
                             <label for="username">
-                                <i class="fas fa-user me-2"></i>Admin username or Email
+                                <i class="fas fa-user me-2"></i>Username or Email
                             </label>
-                            {% if form.username.errors %}
-                                <div class="invalid-feedback">
-                                    {{ form.username.errors.0 }}
-                                </div>
-                            {% endif %}
+                            <div class="form-validation-error" id="username-error" style="display: none;">
+                                Please enter your username or email.
+                            </div>
                         </div>
 
                         <div class="form-floating mb-3 position-relative">
-                            <input type="password" class="form-control {% if form.password.errors %}is-invalid{% endif %}" 
+                            <input type="password" class="form-control" 
                                 id="password" name="password" 
                                 placeholder="Password" required>
                             <label for="password">
@@ -426,11 +426,9 @@
                             <button type="button" class="password-toggle btn btn-sm btn-link position-absolute top-50 end-0 translate-middle-y me-2" id="passwordToggle">
                                 <i class="fas fa-eye"></i>
                             </button>
-                            {% if form.password.errors %}
-                                <div class="invalid-feedback">
-                                    {{ form.password.errors.0 }}
-                                </div>
-                            {% endif %}
+                            <div class="form-validation-error" id="password-error" style="display: none;">
+                                Please enter your password.
+                            </div>
                         </div>
 
                         <div class="row mb-3">
@@ -441,22 +439,21 @@
                                 </div>
                             </div>
                             <div class="col-6 text-end">
-                                <a href="#" class="text-decoration-none" style="color: var(--equity-red);">
+                                <a href="#" class="text-decoration-none" style="color: var(--equity-red);" data-bs-toggle="modal" data-bs-target="#forgotPasswordModal">
                                     <i class="fas fa-key me-1"></i>Forgot Password?
                                 </a>
                             </div>
                         </div>
 
-                        <button type="submit" class="btn btn-login btn-lg w-100 text-white">
+                        <button type="submit" class="btn btn-login btn-lg w-100 text-white" id="loginButton">
                             <span class="btn-text">
                                 <i class="fas fa-sign-in-alt me-2"></i>Login to Dashboard
                             </span>
-                            <span class="loading-spinner d-none">
+                            <span class="loading-spinner">
                                 <i class="fas fa-spinner fa-spin me-2"></i>Authenticating...
                             </span>
                         </button>
                     </form>
-
 
                     <div class="forgot-password">
                         <p class="mb-0">
@@ -559,40 +556,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
     
     <script>
-        // User type selector functionality
-        document.querySelectorAll('.user-type-btn').forEach(button => {
-            button.addEventListener('click', function() {
-                // Remove active class from all buttons
-                document.querySelectorAll('.user-type-btn').forEach(btn => btn.classList.remove('active'));
-                // Add active class to clicked button
-                this.classList.add('active');
-                
-                // Update placeholder text based on selected type
-                const type = this.dataset.type;
-                const usernameInput = document.getElementById('username');
-                const usernameLabel = usernameInput.nextElementSibling;
-                
-                switch(type) {
-                    case 'customer':
-                        usernameInput.placeholder = 'Phone number or Email';
-                        usernameLabel.innerHTML = '<i class="fas fa-user me-2"></i>Phone number or Email';
-                        break;
-                    case 'agent':
-                        usernameInput.placeholder = 'Agent ID or Email';
-                        usernameLabel.innerHTML = '<i class="fas fa-store me-2"></i>Agent ID or Email';
-                        break;
-                    case 'staff':
-                        usernameInput.placeholder = 'Staff ID or Email';
-                        usernameLabel.innerHTML = '<i class="fas fa-briefcase me-2"></i>Staff ID or Email';
-                        break;
-                    case 'admin':
-                        usernameInput.placeholder = 'Admin username or Email';
-                        usernameLabel.innerHTML = '<i class="fas fa-crown me-2"></i>Admin username or Email';
-                        break;
-                }
-            });
-        });
-
         // Password visibility toggle
         document.getElementById('passwordToggle').addEventListener('click', function() {
             const passwordInput = document.getElementById('password');
@@ -613,6 +576,8 @@
         function validateForm() {
             const username = document.getElementById('username');
             const password = document.getElementById('password');
+            const usernameError = document.getElementById('username-error');
+            const passwordError = document.getElementById('password-error');
             let isValid = true;
 
             // Reset previous validation states
@@ -626,7 +591,7 @@
             // Validate username
             if (!username.value.trim()) {
                 username.classList.add('is-invalid');
-                username.nextElementSibling.nextElementSibling.style.display = 'block';
+                usernameError.style.display = 'block';
                 isValid = false;
             } else {
                 username.classList.add('is-valid');
@@ -635,13 +600,7 @@
             // Validate password
             if (!password.value.trim()) {
                 password.classList.add('is-invalid');
-                password.nextElementSibling.nextElementSibling.nextElementSibling.style.display = 'block';
-                isValid = false;
-            } else if (password.value.length < 6) {
-                password.classList.add('is-invalid');
-                const errorDiv = password.nextElementSibling.nextElementSibling.nextElementSibling;
-                errorDiv.textContent = 'Password must be at least 6 characters long.';
-                errorDiv.style.display = 'block';
+                passwordError.style.display = 'block';
                 isValid = false;
             } else {
                 password.classList.add('is-valid');
@@ -650,58 +609,37 @@
             return isValid;
         }
 
-        // Form submission with loading state and validation
+        // Form submission - Remove preventDefault to allow normal form submission
         document.getElementById('loginForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
             if (!validateForm()) {
+                e.preventDefault();
                 return;
             }
 
-            const submitBtn = this.querySelector('button[type="submit"]');
+            const submitBtn = document.getElementById('loginButton');
             submitBtn.classList.add('loading');
             submitBtn.disabled = true;
             
-            // Simulate authentication process
-            setTimeout(() => {
-                submitBtn.classList.remove('loading');
-                submitBtn.disabled = false;
-                
-                // Show success message
-                const alertDiv = document.createElement('div');
-                alertDiv.className = 'alert alert-success alert-dismissible fade show';
-                alertDiv.innerHTML = `
-                    <i class="fas fa-check-circle me-2"></i>
-                    Login successful! Redirecting to dashboard...
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                `;
-                
-                const formTitle = document.querySelector('.form-title');
-                formTitle.parentNode.insertBefore(alertDiv, formTitle.nextSibling);
-                
-                // Simulate redirect after 2 seconds
-                setTimeout(() => {
-                    alertDiv.remove();
-                    // In a real application, you would redirect here
-                    console.log('Redirecting to dashboard...');
-                }, 2000);
-            }, 2000);
+            // Allow the form to submit normally
+            // The loading state will be reset by page reload or redirect
         });
 
         // Real-time validation
         document.getElementById('username').addEventListener('input', function() {
+            const usernameError = document.getElementById('username-error');
             if (this.value.trim()) {
                 this.classList.remove('is-invalid');
                 this.classList.add('is-valid');
-                this.nextElementSibling.nextElementSibling.style.display = 'none';
+                usernameError.style.display = 'none';
             }
         });
 
         document.getElementById('password').addEventListener('input', function() {
-            if (this.value.trim() && this.value.length >= 6) {
+            const passwordError = document.getElementById('password-error');
+            if (this.value.trim()) {
                 this.classList.remove('is-invalid');
                 this.classList.add('is-valid');
-                this.nextElementSibling.nextElementSibling.nextElementSibling.style.display = 'none';
+                passwordError.style.display = 'none';
             }
         });
 

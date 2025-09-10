@@ -18,6 +18,18 @@ from .models import (
     SecurityEvent, KYCDocument, BillPayment, InterestCalculation
 )
 
+
+from django.shortcuts import render, redirect
+from django.contrib.auth import authenticate, login
+from django.contrib import messages
+from django.views.decorators.csrf import csrf_protect
+from django.http import JsonResponse
+import logging
+
+# Set up logging
+logger = logging.getLogger(__name__)
+
+@csrf_protect
 def login_view(request):
     """
     Login view that handles authentication for all user types
@@ -30,17 +42,36 @@ def login_view(request):
         username = request.POST.get('username')
         password = request.POST.get('password')
         
+        # Debug logging
+        logger.info(f"Login attempt for username: {username}")
+        
+        # Validate input
+        if not username or not password:
+            messages.error(request, 'Please provide both username and password.')
+            return render(request, 'auth/login.html')
+        
+        # Try to authenticate
         user = authenticate(request, username=username, password=password)
         
         if user is not None:
             if user.is_active:
                 login(request, user)
                 messages.success(request, f'Welcome back, {user.get_full_name() or user.username}!')
+                
+                # Handle AJAX requests
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return JsonResponse({
+                        'success': True,
+                        'redirect_url': get_dashboard_url(user)
+                    })
+                
                 return redirect_to_dashboard(user)
             else:
                 messages.error(request, 'Your account has been deactivated. Please contact support.')
+                logger.warning(f"Inactive user login attempt: {username}")
         else:
             messages.error(request, 'Invalid username or password.')
+            logger.warning(f"Failed login attempt for username: {username}")
     
     return render(request, 'auth/login.html')
 
@@ -48,14 +79,31 @@ def redirect_to_dashboard(user):
     """
     Redirect user to appropriate dashboard based on user type
     """
-    if user.user_type == 'admin':
-        return redirect('admin_dashboard')
-    elif user.user_type == 'staff':
-        return redirect('staff_dashboard')
-    elif user.user_type == 'agent':
-        return redirect('agent_dashboard')
-    else:  # customer
-        return redirect('customer_dashboard')
+    dashboard_url = get_dashboard_url(user)
+    return redirect(dashboard_url)
+
+def get_dashboard_url(user):
+    """
+    Get the appropriate dashboard URL for the user
+    """
+    # Check if user has user_type attribute
+    if hasattr(user, 'user_type'):
+        if user.user_type == 'admin':
+            return 'admin_dashboard'
+        elif user.user_type == 'staff':
+            return 'staff_dashboard'
+        elif user.user_type == 'agent':
+            return 'agent_dashboard'
+        else:  # customer
+            return 'customer_dashboard'
+    
+    # Fallback: check if user is superuser/staff
+    if user.is_superuser:
+        return 'admin_dashboard'
+    elif user.is_staff:
+        return 'staff_dashboard'
+    else:
+        return 'customer_dashboard'
 
 @login_required
 def logout_view(request):
