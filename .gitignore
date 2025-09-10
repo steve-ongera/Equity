@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+
+# Django
+*.log
+*.pot
+*.pyc
+*.sqlite3
+db.sqlite3
+media/
+staticfiles/
+local_settings.py
+
+# Virtualenv
+venv/
+ENV/
+env/
+.venv/
+.env/
+*.env
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Migrations (optional, if you want to ignore auto-generated migrations)
+# **/migrations/*.py
+# !**/migrations/__init__.py
