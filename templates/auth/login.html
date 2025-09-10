@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equity Bank - Login</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.10.5/font/bootstrap-icons.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --equity-red: #cc0f16;
+            --equity-red-dark: #a50c12;
+            --equity-red-light: #e64449;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--equity-red), var(--equity-red-dark));
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .login-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .login-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+            max-width: 900px;
+            width: 100%;
+            animation: slideIn 0.8s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .login-left {
+            background: linear-gradient(135deg, var(--equity-red), var(--equity-red-dark));
+            color: white;
+            padding: 3rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            text-align: center;
+            position: relative;
+        }
+
+        .login-right {
+            padding: 3rem;
+        }
+
+        .brand-logo {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .brand-logo i {
+            margin-right: 15px;
+            background: rgba(255,255,255,0.2);
+            padding: 15px;
+            border-radius: 50%;
+        }
+
+        .brand-tagline {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            margin-bottom: 2rem;
+        }
+
+        .feature-list {
+            text-align: left;
+            list-style: none;
+            padding: 0;
+        }
+
+        .feature-list li {
+            padding: 10px 0;
+            display: flex;
+            align-items: center;
+        }
+
+        .feature-list li i {
+            color: #ffc107;
+            margin-right: 15px;
+            width: 20px;
+        }
+
+        .form-title {
+            color: var(--equity-red);
+            font-weight: 700;
+            margin-bottom: 2rem;
+            text-align: center;
+            font-size: 2rem;
+        }
+
+        .form-floating {
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+
+        .form-control {
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+            padding: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            border-color: var(--equity-red);
+            box-shadow: 0 0 0 0.2rem rgba(204, 15, 22, 0.25);
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #6c757d;
+            cursor: pointer;
+            padding: 5px;
+            z-index: 10;
+        }
+
+        .password-toggle:hover {
+            color: var(--equity-red);
+        }
+
+        .btn-login {
+            background: linear-gradient(135deg, var(--equity-red), var(--equity-red-dark));
+            border: none;
+            border-radius: 10px;
+            padding: 1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(204, 15, 22, 0.3);
+        }
+
+        .btn-login:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn-login:hover:before {
+            left: 100%;
+        }
+
+        .user-type-selector {
+            margin-bottom: 2rem;
+        }
+
+        .user-type-btn {
+            border: 2px solid #e9ecef;
+            background: white;
+            color: #6c757d;
+            border-radius: 10px;
+            padding: 0.75rem 1rem;
+            margin: 0.25rem;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .user-type-btn.active,
+        .user-type-btn:hover {
+            border-color: var(--equity-red);
+            background: var(--equity-red);
+            color: white;
+        }
+
+        .forgot-password {
+            text-align: center;
+            margin-top: 1.5rem;
+        }
+
+        .forgot-password a {
+            color: var(--equity-red);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .forgot-password a:hover {
+            text-decoration: underline;
+        }
+
+        .alert {
+            border-radius: 10px;
+            border: none;
+            font-weight: 500;
+        }
+
+        .security-info {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .security-info h6 {
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .security-info ul {
+            list-style: none;
+            padding: 0;
+            font-size: 0.9rem;
+        }
+
+        .security-info li {
+            padding: 5px 0;
+            display: flex;
+            align-items: center;
+        }
+
+        .security-info li i {
+            margin-right: 10px;
+            color: #ffc107;
+        }
+
+        @media (max-width: 768px) {
+            .login-card {
+                margin: 10px;
+            }
+            
+            .login-left {
+                padding: 2rem;
+            }
+            
+            .login-right {
+                padding: 2rem;
+            }
+            
+            .brand-logo {
+                font-size: 2rem;
+            }
+            
+            .form-title {
+                font-size: 1.5rem;
+            }
+        }
+
+        .loading-spinner {
+            display: none;
+        }
+
+        .btn-login.loading .loading-spinner {
+            display: inline-block;
+        }
+
+        .btn-login.loading .btn-text {
+            display: none;
+        }
+
+        /* Floating particles animation */
+        .particles {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .particle {
+            position: absolute;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 0; }
+            50% { transform: translateY(-100px) rotate(180deg); opacity: 1; }
+        }
+
+        .form-validation-error {
+            color: #dc3545;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+            display: none;
+        }
+
+        .form-control.is-invalid {
+            border-color: #dc3545;
+        }
+
+        .form-control.is-valid {
+            border-color: #28a745;
+        }
+
+        /* Modal styles */
+        .modal-content {
+            border-radius: 15px;
+            border: none;
+        }
+
+        .modal-header {
+            background: var(--equity-red);
+            color: white;
+            border-radius: 15px 15px 0 0;
+        }
+
+        .btn-close {
+            filter: brightness(0) invert(1);
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="row g-0">
+                <!-- Left Side - Brand Information -->
+                <div class="col-md-6 login-left">
+                    <div class="particles">
+                        <div class="particle" style="left: 10%; animation-delay: 0s; width: 10px; height: 10px;"></div>
+                        <div class="particle" style="left: 20%; animation-delay: 1s; width: 15px; height: 15px;"></div>
+                        <div class="particle" style="left: 35%; animation-delay: 2s; width: 8px; height: 8px;"></div>
+                        <div class="particle" style="left: 50%; animation-delay: 3s; width: 12px; height: 12px;"></div>
+                        <div class="particle" style="left: 70%; animation-delay: 4s; width: 10px; height: 10px;"></div>
+                        <div class="particle" style="left: 85%; animation-delay: 5s; width: 14px; height: 14px;"></div>
+                    </div>
+
+                    <div class="brand-logo">
+                        <i class="fas fa-university"></i>
+                        EQUITY BANK
+                    </div>
+                    <p class="brand-tagline">Your Partner in Financial Growth</p>
+                    
+                    <ul class="feature-list">
+                        <li><i class="fas fa-shield-alt"></i>Bank-level Security</li>
+                        <li><i class="fas fa-clock"></i>24/7 Access</li>
+                        <li><i class="fas fa-mobile-alt"></i>Multi-platform Support</li>
+                        <li><i class="fas fa-chart-line"></i>Real-time Analytics</li>
+                        <li><i class="fas fa-headset"></i>Customer Support</li>
+                    </ul>
+
+                    <div class="security-info">
+                        <h6><i class="fas fa-lock me-2"></i>Security Notice</h6>
+                        <ul>
+                            <li><i class="fas fa-check-circle"></i>Always verify the URL</li>
+                            <li><i class="fas fa-check-circle"></i>Never share your credentials</li>
+                            <li><i class="fas fa-check-circle"></i>Log out after use</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Right Side - Login Form -->
+                <div class="col-md-6 login-right">
+                    <h2 class="form-title">
+                        <i class="fas fa-sign-in-alt me-2"></i>
+                        Welcome Back
+                    </h2>
+
+                    <!-- Demo Alert -->
+                    <div class="alert alert-info alert-dismissible fade show" role="alert">
+                        <i class="fas fa-info-circle me-2"></i>
+                        This is a demo login page. Use any credentials to test.
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+
+                    <!-- User Type Selector -->
+                    <div class="user-type-selector">
+                        <div class="text-center mb-3">
+                            <small class="text-muted">Select your role</small>
+                        </div>
+                        <div class="d-flex flex-wrap justify-content-center">
+                            <button type="button" class="btn user-type-btn" data-type="customer">
+                                <i class="fas fa-user me-1"></i>Customer
+                            </button>
+                            <button type="button" class="btn user-type-btn" data-type="agent">
+                                <i class="fas fa-store me-1"></i>Agent
+                            </button>
+                            <button type="button" class="btn user-type-btn" data-type="staff">
+                                <i class="fas fa-briefcase me-1"></i>Staff
+                            </button>
+                            <button type="button" class="btn user-type-btn active" data-type="admin">
+                                <i class="fas fa-crown me-1"></i>Admin
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Login Form -->
+                    <form id="loginForm" novalidate>
+                        <div class="form-floating">
+                            <input type="text" class="form-control" id="username" name="username" placeholder="Username" required>
+                            <label for="username">
+                                <i class="fas fa-user me-2"></i>Admin username or Email
+                            </label>
+                            <div class="form-validation-error">Please enter a valid username or email.</div>
+                        </div>
+
+                        <div class="form-floating">
+                            <input type="password" class="form-control" id="password" name="password" placeholder="Password" required>
+                            <label for="password">
+                                <i class="fas fa-lock me-2"></i>Password
+                            </label>
+                            <button type="button" class="password-toggle" id="passwordToggle">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <div class="form-validation-error">Password is required.</div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="remember_me" name="remember_me">
+                                    <label class="form-check-label" for="remember_me">
+                                        Remember me
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-6 text-end">
+                                <a href="#" class="text-decoration-none" style="color: var(--equity-red);" data-bs-toggle="modal" data-bs-target="#forgotPasswordModal">
+                                    <i class="fas fa-key me-1"></i>Forgot Password?
+                                </a>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-login btn-lg w-100 text-white">
+                            <span class="btn-text">
+                                <i class="fas fa-sign-in-alt me-2"></i>
+                                Login to Dashboard
+                            </span>
+                            <span class="loading-spinner">
+                                <i class="fas fa-spinner fa-spin me-2"></i>
+                                Authenticating...
+                            </span>
+                        </button>
+                    </form>
+
+                    <div class="forgot-password">
+                        <p class="mb-0">
+                            <small class="text-muted">
+                                Need help? <a href="#" style="color: var(--equity-red);" data-bs-toggle="modal" data-bs-target="#supportModal">Contact Support</a>
+                            </small>
+                        </p>
+                    </div>
+
+                    <!-- Footer Info -->
+                    <div class="text-center mt-4">
+                        <small class="text-muted">
+                            <i class="fas fa-shield-alt me-1"></i>
+                            Secured by 256-bit SSL encryption
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Forgot Password Modal -->
+    <div class="modal fade" id="forgotPasswordModal" tabindex="-1" aria-labelledby="forgotPasswordModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="forgotPasswordModalLabel">
+                        <i class="fas fa-key me-2"></i>Reset Password
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted mb-3">Enter your email address and we'll send you a link to reset your password.</p>
+                    <div class="form-floating">
+                        <input type="email" class="form-control" id="resetEmail" placeholder="Email">
+                        <label for="resetEmail">
+                            <i class="fas fa-envelope me-2"></i>Email Address
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-login text-white" id="sendResetEmail">
+                        <i class="fas fa-paper-plane me-2"></i>Send Reset Link
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Support Modal -->
+    <div class="modal fade" id="supportModal" tabindex="-1" aria-labelledby="supportModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="supportModalLabel">
+                        <i class="fas fa-headset me-2"></i>Contact Support
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100 border-0 bg-light">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-phone fa-2x text-success mb-2"></i>
+                                    <h6>Call Center</h6>
+                                    <p class="mb-0">+254 763 063 063</p>
+                                    <small class="text-muted">24/7 Support</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100 border-0 bg-light">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-envelope fa-2x" style="color: var(--equity-red);" class="mb-2"></i>
+                                    <h6>Email Support</h6>
+                                    <p class="mb-0">support@equity.co.ke</p>
+                                    <small class="text-muted">Response within 24hrs</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="card border-0 bg-light">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-comments fa-2x text-primary mb-2"></i>
+                                    <h6>Live Chat</h6>
+                                    <p class="mb-2">Chat with our support team</p>
+                                    <button class="btn btn-primary btn-sm">Start Chat</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // User type selector functionality
+        document.querySelectorAll('.user-type-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                // Remove active class from all buttons
+                document.querySelectorAll('.user-type-btn').forEach(btn => btn.classList.remove('active'));
+                // Add active class to clicked button
+                this.classList.add('active');
+                
+                // Update placeholder text based on selected type
+                const type = this.dataset.type;
+                const usernameInput = document.getElementById('username');
+                const usernameLabel = usernameInput.nextElementSibling;
+                
+                switch(type) {
+                    case 'customer':
+                        usernameInput.placeholder = 'Phone number or Email';
+                        usernameLabel.innerHTML = '<i class="fas fa-user me-2"></i>Phone number or Email';
+                        break;
+                    case 'agent':
+                        usernameInput.placeholder = 'Agent ID or Email';
+                        usernameLabel.innerHTML = '<i class="fas fa-store me-2"></i>Agent ID or Email';
+                        break;
+                    case 'staff':
+                        usernameInput.placeholder = 'Staff ID or Email';
+                        usernameLabel.innerHTML = '<i class="fas fa-briefcase me-2"></i>Staff ID or Email';
+                        break;
+                    case 'admin':
+                        usernameInput.placeholder = 'Admin username or Email';
+                        usernameLabel.innerHTML = '<i class="fas fa-crown me-2"></i>Admin username or Email';
+                        break;
+                }
+            });
+        });
+
+        // Password visibility toggle
+        document.getElementById('passwordToggle').addEventListener('click', function() {
+            const passwordInput = document.getElementById('password');
+            const icon = this.querySelector('i');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        });
+
+        // Form validation
+        function validateForm() {
+            const username = document.getElementById('username');
+            const password = document.getElementById('password');
+            let isValid = true;
+
+            // Reset previous validation states
+            document.querySelectorAll('.form-control').forEach(input => {
+                input.classList.remove('is-invalid', 'is-valid');
+            });
+            document.querySelectorAll('.form-validation-error').forEach(error => {
+                error.style.display = 'none';
+            });
+
+            // Validate username
+            if (!username.value.trim()) {
+                username.classList.add('is-invalid');
+                username.nextElementSibling.nextElementSibling.style.display = 'block';
+                isValid = false;
+            } else {
+                username.classList.add('is-valid');
+            }
+
+            // Validate password
+            if (!password.value.trim()) {
+                password.classList.add('is-invalid');
+                password.nextElementSibling.nextElementSibling.nextElementSibling.style.display = 'block';
+                isValid = false;
+            } else if (password.value.length < 6) {
+                password.classList.add('is-invalid');
+                const errorDiv = password.nextElementSibling.nextElementSibling.nextElementSibling;
+                errorDiv.textContent = 'Password must be at least 6 characters long.';
+                errorDiv.style.display = 'block';
+                isValid = false;
+            } else {
+                password.classList.add('is-valid');
+            }
+
+            return isValid;
+        }
+
+        // Form submission with loading state and validation
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (!validateForm()) {
+                return;
+            }
+
+            const submitBtn = this.querySelector('button[type="submit"]');
+            submitBtn.classList.add('loading');
+            submitBtn.disabled = true;
+            
+            // Simulate authentication process
+            setTimeout(() => {
+                submitBtn.classList.remove('loading');
+                submitBtn.disabled = false;
+                
+                // Show success message
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-success alert-dismissible fade show';
+                alertDiv.innerHTML = `
+                    <i class="fas fa-check-circle me-2"></i>
+                    Login successful! Redirecting to dashboard...
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                
+                const formTitle = document.querySelector('.form-title');
+                formTitle.parentNode.insertBefore(alertDiv, formTitle.nextSibling);
+                
+                // Simulate redirect after 2 seconds
+                setTimeout(() => {
+                    alertDiv.remove();
+                    // In a real application, you would redirect here
+                    console.log('Redirecting to dashboard...');
+                }, 2000);
+            }, 2000);
+        });
+
+        // Real-time validation
+        document.getElementById('username').addEventListener('input', function() {
+            if (this.value.trim()) {
+                this.classList.remove('is-invalid');
+                this.classList.add('is-valid');
+                this.nextElementSibling.nextElementSibling.style.display = 'none';
+            }
+        });
+
+        document.getElementById('password').addEventListener('input', function() {
+            if (this.value.trim() && this.value.length >= 6) {
+                this.classList.remove('is-invalid');
+                this.classList.add('is-valid');
+                this.nextElementSibling.nextElementSibling.nextElementSibling.style.display = 'none';
+            }
+        });
+
+        // Forgot password functionality
+        document.getElementById('sendResetEmail').addEventListener('click', function() {
+            const emailInput = document.getElementById('resetEmail');
+            const email = emailInput.value.trim();
+            
+            if (!email || !email.includes('@')) {
+                emailInput.classList.add('is-invalid');
+                return;
+            }
+            
+            emailInput.classList.remove('is-invalid');
+            emailInput.classList.add('is-valid');
+            
+            // Simulate sending reset email
+            this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Sending...';
+            this.disabled = true;
+            
+            setTimeout(() => {
+                this.innerHTML = '<i class="fas fa-check me-2"></i>Sent!';
+                setTimeout(() => {
+                    bootstrap.Modal.getInstance(document.getElementById('forgotPasswordModal')).hide();
+                    this.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Send Reset Link';
+                    this.disabled = false;
+                    emailInput.value = '';
+                    emailInput.classList.remove('is-valid');
+                }, 1000);
+            }, 1500);
+        });
+
+        // Add some interactive effects
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add hover effect to feature list items
+            document.querySelectorAll('.feature-list li').forEach(item => {
+                item.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateX(10px)';
+                    this.style.transition = 'transform 0.3s ease';
+                });
+                
+                item.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateX(0)';
+                });
+            });
+
+            // Add typing effect to brand tagline
+            const tagline = document.querySelector('.brand-tagline');
+            const originalText = tagline.textContent;
+            tagline.textContent = '';
+            
+            let i = 0;
+            const typeWriter = () => {
+                if (i < originalText.length) {
+                    tagline.textContent += originalText.charAt(i);
+                    i++;
+                    setTimeout(typeWriter, 100);
+                }
+            };
+            
+            setTimeout(typeWriter, 1000);
+        });
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && e.target.tagName !== 'BUTTON' && e.target.type !== 'submit') {
+                const form = document.getElementById('loginForm');
+                if (form.contains(e.target)) {
+                    e.preventDefault();
+                    form.querySelector('button[type="submit"]').click();
+                }
+            }
+        });
+    </script>
+</body>
+</html>
