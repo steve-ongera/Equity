@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'import_export',
     'django_extensions',
     'channels',
+    'django.contrib.humanize',
 
     'banking_system',
 ]
