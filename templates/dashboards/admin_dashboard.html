@@ -7,19 +7,21 @@
 <style>
     .dashboard-card {
         background: white;
-        border-radius: 15px;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-        transition: transform 0.3s ease;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        border: 1px solid #e9ecef;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
     
     .dashboard-card:hover {
-        transform: translateY(-5px);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
     }
     
     .stat-icon {
         width: 60px;
         height: 60px;
-        border-radius: 50%;
+        border-radius: 8px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -27,249 +29,284 @@
     }
     
     .chart-container {
-        height: 400px;
+        height: 350px;
         position: relative;
+        padding: 10px;
     }
     
     .activity-item {
-        padding: 1rem;
+        padding: 12px 16px;
         border-left: 3px solid var(--equity-red);
-        margin-bottom: 1rem;
+        margin-bottom: 12px;
         background: white;
-        border-radius: 0 10px 10px 0;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        border-radius: 0 6px 6px 0;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        border-right: 1px solid #e9ecef;
+        border-top: 1px solid #e9ecef;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .stat-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #2c3e50;
+    }
+    
+    .stat-label {
+        font-size: 0.875rem;
+        color: #6c757d;
+        margin-top: 4px;
+    }
+    
+    .btn-equity {
+        background-color: var(--equity-red);
+        border-color: var(--equity-red);
+        color: white;
+    }
+    
+    .btn-equity:hover {
+        background-color: #b00e15;
+        border-color: #b00e15;
+        color: white;
+    }
+    
+    .refresh-btn {
+        border-radius: 6px;
+    }
+    
+    .export-dropdown .dropdown-menu {
+        border-radius: 6px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
 </style>
 {% endblock %}
 
 {% block content %}
+<!-- Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1">Admin Dashboard</h2>
+        <p class="text-muted">Welcome back, {{ user.get_full_name|default:user.username }}</p>
+    </div>
+    <div class="d-flex gap-2">
+        <button class="btn btn-outline-secondary refresh-btn" id="refreshData">
+            <i class="fas fa-sync-alt me-2"></i>Refresh
+        </button>
+        <div class="dropdown export-dropdown">
+            <button class="btn btn-equity dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                <i class="fas fa-download me-2"></i>Export
+            </button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="#"><i class="fas fa-file-pdf me-2"></i>PDF Report</a></li>
+                <li><a class="dropdown-item" href="#"><i class="fas fa-file-excel me-2"></i>Excel Report</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
 
-        <!-- Main Content -->
-        <div class="col-lg-12 col-md-12">
-            <div class="main-content">
-                <!-- Header -->
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <div>
-                        <h2 class="mb-1">Admin Dashboard</h2>
-                        <p class="text-muted">Welcome back, {{ user.get_full_name|default:user.username }}</p>
-                    </div>
-                    <div class="d-flex gap-2">
-                        <button class="btn btn-outline-secondary" id="refreshData">
-                            <i class="fas fa-sync-alt me-2"></i>Refresh
-                        </button>
-                        <div class="dropdown">
-                            <button class="btn btn-equity dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-download me-2"></i>Export
-                            </button>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="#"><i class="fas fa-file-pdf me-2"></i>PDF Report</a></li>
-                                <li><a class="dropdown-item" href="#"><i class="fas fa-file-excel me-2"></i>Excel Report</a></li>
-                            </ul>
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="dashboard-card p-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="stat-value">{{ total_customers|intcomma }}</div>
+                    <div class="stat-label">Total Customers</div>
+                </div>
+                <div class="stat-icon" style="background: rgba(40, 167, 69, 0.1); color: #28a745;">
+                    <i class="fas fa-users"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="dashboard-card p-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="stat-value">{{ total_accounts|intcomma }}</div>
+                    <div class="stat-label">Active Accounts</div>
+                </div>
+                <div class="stat-icon" style="background: rgba(0, 123, 255, 0.1); color: #007bff;">
+                    <i class="fas fa-university"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="dashboard-card p-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="stat-value">{{ total_transactions_today|intcomma }}</div>
+                    <div class="stat-label">Today's Transactions</div>
+                </div>
+                <div class="stat-icon" style="background: rgba(255, 193, 7, 0.1); color: #ffc107;">
+                    <i class="fas fa-exchange-alt"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="dashboard-card p-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="stat-value">KES {{ total_amount_today|floatformat:0|intcomma }}</div>
+                    <div class="stat-label">Today's Volume</div>
+                </div>
+                <div class="stat-icon" style="background: rgba(204, 15, 22, 0.1); color: var(--equity-red);">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row mb-4">
+    <div class="col-lg-8 mb-4">
+        <div class="dashboard-card p-4">
+            <h5 class="mb-3">Transaction Trends (Last 30 Days)</h5>
+            <div class="chart-container">
+                <canvas id="transactionChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4 mb-4">
+        <div class="dashboard-card p-4">
+            <h5 class="mb-3">Account Distribution</h5>
+            <div class="chart-container">
+                <canvas id="accountChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Additional Stats Row -->
+<div class="row mb-4">
+    <div class="col-lg-6 mb-4">
+        <div class="dashboard-card p-4">
+            <h5 class="mb-3">ATM Status</h5>
+            <div class="row text-center">
+                <div class="col-3">
+                    <div class="stat-value text-success">{{ atm_stats.online_atms }}</div>
+                    <div class="stat-label">Online</div>
+                </div>
+                <div class="col-3">
+                    <div class="stat-value text-danger">{{ atm_stats.offline_atms }}</div>
+                    <div class="stat-label">Offline</div>
+                </div>
+                <div class="col-3">
+                    <div class="stat-value text-warning">{{ atm_stats.maintenance_atms }}</div>
+                    <div class="stat-label">Maintenance</div>
+                </div>
+                <div class="col-3">
+                    <div class="stat-value">{{ atm_stats.total_atms }}</div>
+                    <div class="stat-label">Total</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-6 mb-4">
+        <div class="dashboard-card p-4">
+            <h5 class="mb-3">Loan Statistics</h5>
+            <div class="row text-center">
+                <div class="col-6">
+                    <div class="stat-value">{{ loan_stats.total_applications }}</div>
+                    <div class="stat-label">Applications</div>
+                </div>
+                <div class="col-6">
+                    <div class="stat-value text-warning">{{ loan_stats.pending_applications }}</div>
+                    <div class="stat-label">Pending</div>
+                </div>
+                <div class="col-6">
+                    <div class="stat-value text-success">{{ loan_stats.active_loans }}</div>
+                    <div class="stat-label">Active Loans</div>
+                </div>
+                <div class="col-6">
+                    <div class="stat-value">KES {{ loan_stats.total_disbursed|floatformat:0|intcomma }}</div>
+                    <div class="stat-label">Disbursed</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activities -->
+<div class="row">
+    <div class="col-lg-4 mb-4">
+        <div class="dashboard-card p-4">
+            <h5 class="mb-3">Recent Transactions</h5>
+            <div style="max-height: 400px; overflow-y: auto;">
+                {% for transaction in recent_activities.transactions %}
+                <div class="activity-item">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ transaction.get_transaction_type_display }}</strong>
+                            <div class="text-muted small">{{ transaction.account.account_number }}</div>
+                        </div>
+                        <div class="text-end">
+                            <div class="fw-bold {% if transaction.transaction_type == 'deposit' %}text-success{% else %}text-danger{% endif %}">
+                                KES {{ transaction.amount|floatformat:0|intcomma }}
+                            </div>
+                            <div class="text-muted small">{{ transaction.created_at|timesince }} ago</div>
                         </div>
                     </div>
                 </div>
-
-                <!-- Statistics Cards -->
-                <div class="row mb-4">
-                    <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="dashboard-card p-4">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <div class="stat-value">{{ total_customers|intcomma }}</div>
-                                    <div class="stat-label">Total Customers</div>
-                                </div>
-                                <div class="stat-icon" style="background: rgba(40, 167, 69, 0.1); color: #28a745;">
-                                    <i class="fas fa-users"></i>
-                                </div>
-                            </div>
+                {% empty %}
+                <p class="text-muted text-center py-4">No recent transactions</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4 mb-4">
+        <div class="dashboard-card p-4">
+            <h5 class="mb-3">New Registrations</h5>
+            <div style="max-height: 400px; overflow-y: auto;">
+                {% for user in recent_activities.registrations %}
+                <div class="activity-item">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon me-3" style="width: 40px; height: 40px; background: rgba(40, 167, 69, 0.1); color: #28a745;">
+                            <i class="fas fa-user"></i>
                         </div>
-                    </div>
-                    
-                    <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="dashboard-card p-4">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <div class="stat-value">{{ total_accounts|intcomma }}</div>
-                                    <div class="stat-label">Active Accounts</div>
-                                </div>
-                                <div class="stat-icon" style="background: rgba(0, 123, 255, 0.1); color: #007bff;">
-                                    <i class="fas fa-university"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="dashboard-card p-4">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <div class="stat-value">{{ total_transactions_today|intcomma }}</div>
-                                    <div class="stat-label">Today's Transactions</div>
-                                </div>
-                                <div class="stat-icon" style="background: rgba(255, 193, 7, 0.1); color: #ffc107;">
-                                    <i class="fas fa-exchange-alt"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="dashboard-card p-4">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <div class="stat-value">KES {{ total_amount_today|floatformat:0|intcomma }}</div>
-                                    <div class="stat-label">Today's Volume</div>
-                                </div>
-                                <div class="stat-icon" style="background: rgba(204, 15, 22, 0.1); color: var(--equity-red);">
-                                    <i class="fas fa-chart-line"></i>
-                                </div>
-                            </div>
+                        <div>
+                            <strong>{{ user.get_full_name|default:user.username }}</strong>
+                            <div class="text-muted small">{{ user.email }}</div>
+                            <div class="text-muted small">{{ user.created_at|timesince }} ago</div>
                         </div>
                     </div>
                 </div>
-
-                <!-- Charts Row -->
-                <div class="row mb-4">
-                    <div class="col-lg-8 mb-4">
-                        <div class="dashboard-card p-4">
-                            <h5 class="mb-3">Transaction Trends (Last 30 Days)</h5>
-                            <div class="chart-container">
-                                <canvas id="transactionChart"></canvas>
-                            </div>
+                {% empty %}
+                <p class="text-muted text-center py-4">No recent registrations</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4 mb-4">
+        <div class="dashboard-card p-4">
+            <h5 class="mb-3">Support Tickets</h5>
+            <div style="max-height: 400px; overflow-y: auto;">
+                {% for ticket in recent_activities.support_tickets %}
+                <div class="activity-item">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <strong>{{ ticket.subject|truncatechars:30 }}</strong>
+                            <div class="text-muted small">{{ ticket.customer.username }}</div>
+                            <span class="badge {% if ticket.priority == 'urgent' %}bg-danger{% elif ticket.priority == 'high' %}bg-warning{% else %}bg-secondary{% endif %} mt-1">
+                                {{ ticket.get_priority_display }}
+                            </span>
                         </div>
-                    </div>
-                    
-                    <div class="col-lg-4 mb-4">
-                        <div class="dashboard-card p-4">
-                            <h5 class="mb-3">Account Distribution</h5>
-                            <div class="chart-container">
-                                <canvas id="accountChart"></canvas>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Additional Stats Row -->
-                <div class="row mb-4">
-                    <div class="col-lg-6 mb-4">
-                        <div class="dashboard-card p-4">
-                            <h5 class="mb-3">ATM Status</h5>
-                            <div class="row text-center">
-                                <div class="col-3">
-                                    <div class="stat-value text-success">{{ atm_stats.online_atms }}</div>
-                                    <div class="stat-label">Online</div>
-                                </div>
-                                <div class="col-3">
-                                    <div class="stat-value text-danger">{{ atm_stats.offline_atms }}</div>
-                                    <div class="stat-label">Offline</div>
-                                </div>
-                                <div class="col-3">
-                                    <div class="stat-value text-warning">{{ atm_stats.maintenance_atms }}</div>
-                                    <div class="stat-label">Maintenance</div>
-                                </div>
-                                <div class="col-3">
-                                    <div class="stat-value">{{ atm_stats.total_atms }}</div>
-                                    <div class="stat-label">Total</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="col-lg-6 mb-4">
-                        <div class="dashboard-card p-4">
-                            <h5 class="mb-3">Loan Statistics</h5>
-                            <div class="row text-center">
-                                <div class="col-6">
-                                    <div class="stat-value">{{ loan_stats.total_applications }}</div>
-                                    <div class="stat-label">Applications</div>
-                                </div>
-                                <div class="col-6">
-                                    <div class="stat-value text-warning">{{ loan_stats.pending_applications }}</div>
-                                    <div class="stat-label">Pending</div>
-                                </div>
-                                <div class="col-6">
-                                    <div class="stat-value text-success">{{ loan_stats.active_loans }}</div>
-                                    <div class="stat-label">Active Loans</div>
-                                </div>
-                                <div class="col-6">
-                                    <div class="stat-value">KES {{ loan_stats.total_disbursed|floatformat:0|intcomma }}</div>
-                                    <div class="stat-label">Disbursed</div>
-                                </div>
-                            </div>
-                        </div>
+                        <div class="text-muted small">{{ ticket.created_at|timesince }} ago</div>
                     </div>
                 </div>
-
-                <!-- Recent Activities -->
-                <div class="row">
-                    <div class="col-lg-4 mb-4">
-                        <div class="dashboard-card p-4">
-                            <h5 class="mb-3">Recent Transactions</h5>
-                            {% for transaction in recent_activities.transactions %}
-                            <div class="activity-item">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <strong>{{ transaction.get_transaction_type_display }}</strong>
-                                        <div class="text-muted small">{{ transaction.account.account_number }}</div>
-                                    </div>
-                                    <div class="text-end">
-                                        <div class="fw-bold {% if transaction.transaction_type == 'deposit' %}text-success{% else %}text-danger{% endif %}">
-                                            KES {{ transaction.amount|floatformat:0|intcomma }}
-                                        </div>
-                                        <div class="text-muted small">{{ transaction.created_at|timesince }} ago</div>
-                                    </div>
-                                </div>
-                            </div>
-                            {% empty %}
-                            <p class="text-muted">No recent transactions</p>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    
-                    <div class="col-lg-4 mb-4">
-                        <div class="dashboard-card p-4">
-                            <h5 class="mb-3">New Registrations</h5>
-                            {% for user in recent_activities.registrations %}
-                            <div class="activity-item">
-                                <div class="d-flex align-items-center">
-                                    <div class="stat-icon me-3" style="width: 40px; height: 40px; background: rgba(40, 167, 69, 0.1); color: #28a745;">
-                                        <i class="fas fa-user"></i>
-                                    </div>
-                                    <div>
-                                        <strong>{{ user.get_full_name|default:user.username }}</strong>
-                                        <div class="text-muted small">{{ user.email }}</div>
-                                        <div class="text-muted small">{{ user.created_at|timesince }} ago</div>
-                                    </div>
-                                </div>
-                            </div>
-                            {% empty %}
-                            <p class="text-muted">No recent registrations</p>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    
-                    <div class="col-lg-4 mb-4">
-                        <div class="dashboard-card p-4">
-                            <h5 class="mb-3">Support Tickets</h5>
-                            {% for ticket in recent_activities.support_tickets %}
-                            <div class="activity-item">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <div>
-                                        <strong>{{ ticket.subject|truncatechars:30 }}</strong>
-                                        <div class="text-muted small">{{ ticket.customer.username }}</div>
-                                        <span class="badge {% if ticket.priority == 'urgent' %}bg-danger{% elif ticket.priority == 'high' %}bg-warning{% else %}bg-secondary{% endif %} mt-1">
-                                            {{ ticket.get_priority_display }}
-                                        </span>
-                                    </div>
-                                    <div class="text-muted small">{{ ticket.created_at|timesince }} ago</div>
-                                </div>
-                            </div>
-                            {% empty %}
-                            <p class="text-muted">No recent tickets</p>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div>
+                {% empty %}
+                <p class="text-muted text-center py-4">No recent tickets</p>
+                {% endfor %}
             </div>
         </div>
     </div>
@@ -277,7 +314,14 @@
 {% endblock %}
 
 {% block extra_js %}
+<!-- Chart.js CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+
 <script>
+// Global chart variables
+let transactionChart = null;
+let accountChart = null;
+
 // Transaction Trends Chart
 async function loadTransactionChart() {
     try {
@@ -285,7 +329,13 @@ async function loadTransactionChart() {
         const data = await response.json();
         
         const ctx = document.getElementById('transactionChart').getContext('2d');
-        new Chart(ctx, {
+        
+        // Destroy existing chart if it exists
+        if (transactionChart) {
+            transactionChart.destroy();
+        }
+        
+        transactionChart = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: data.labels,
@@ -294,24 +344,45 @@ async function loadTransactionChart() {
                     data: data.counts,
                     borderColor: '#cc0f16',
                     backgroundColor: 'rgba(204, 15, 22, 0.1)',
-                    tension: 0.4
+                    tension: 0.4,
+                    borderWidth: 2,
+                    fill: true
                 }, {
                     label: 'Amount (KES)',
                     data: data.amounts,
                     borderColor: '#007bff',
                     backgroundColor: 'rgba(0, 123, 255, 0.1)',
                     tension: 0.4,
-                    yAxisID: 'y1'
+                    borderWidth: 2,
+                    yAxisID: 'y1',
+                    fill: true
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                interaction: {
+                    intersect: false,
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    }
+                },
                 scales: {
+                    x: {
+                        display: true,
+                        grid: {
+                            display: false
+                        }
+                    },
                     y: {
                         type: 'linear',
                         display: true,
                         position: 'left',
+                        grid: {
+                            color: 'rgba(0,0,0,0.1)'
+                        }
                     },
                     y1: {
                         type: 'linear',
@@ -326,6 +397,8 @@ async function loadTransactionChart() {
         });
     } catch (error) {
         console.error('Error loading transaction chart:', error);
+        document.getElementById('transactionChart').parentElement.innerHTML = 
+            '<div class="text-center text-muted py-5"><i class="fas fa-exclamation-triangle"></i><br>Error loading chart data</div>';
     }
 }
 
@@ -336,7 +409,13 @@ async function loadAccountChart() {
         const data = await response.json();
         
         const ctx = document.getElementById('accountChart').getContext('2d');
-        new Chart(ctx, {
+        
+        // Destroy existing chart if it exists
+        if (accountChart) {
+            accountChart.destroy();
+        }
+        
+        accountChart = new Chart(ctx, {
             type: 'doughnut',
             data: {
                 labels: data.labels,
@@ -349,41 +428,62 @@ async function loadAccountChart() {
                         '#ffc107',
                         '#17a2b8',
                         '#6f42c1'
-                    ]
+                    ],
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                cutout: '60%',
                 plugins: {
                     legend: {
-                        position: 'bottom'
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            usePointStyle: true
+                        }
                     }
                 }
             }
         });
     } catch (error) {
         console.error('Error loading account chart:', error);
+        document.getElementById('accountChart').parentElement.innerHTML = 
+            '<div class="text-center text-muted py-5"><i class="fas fa-exclamation-triangle"></i><br>Error loading chart data</div>';
     }
 }
 
 // Refresh data
 document.getElementById('refreshData').addEventListener('click', function() {
+    const originalHTML = this.innerHTML;
     this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Refreshing...';
+    this.disabled = true;
     
     // Reload charts
-    loadTransactionChart();
-    loadAccountChart();
-    
-    setTimeout(() => {
-        this.innerHTML = '<i class="fas fa-sync-alt me-2"></i>Refresh';
-    }, 1000);
+    Promise.all([loadTransactionChart(), loadAccountChart()])
+        .finally(() => {
+            setTimeout(() => {
+                this.innerHTML = originalHTML;
+                this.disabled = false;
+            }, 1000);
+        });
 });
 
 // Initialize charts when page loads
 document.addEventListener('DOMContentLoaded', function() {
-    loadTransactionChart();
-    loadAccountChart();
+    // Add small delay to ensure DOM is fully ready
+    setTimeout(() => {
+        loadTransactionChart();
+        loadAccountChart();
+    }, 100);
+});
+
+// Handle window resize
+window.addEventListener('resize', function() {
+    if (transactionChart) transactionChart.resize();
+    if (accountChart) accountChart.resize();
 });
 </script>
 {% endblock %}
