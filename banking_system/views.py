@@ -265,6 +265,7 @@ def get_admin_dashboard_context():
         'recent_activities': recent_activities,
     }
 
+from django.db.models.functions import TruncDate
 # AJAX endpoints for dashboard charts
 @login_required
 def get_transaction_data(request):
@@ -278,17 +279,17 @@ def get_transaction_data(request):
     start_date = timezone.now().date() - timedelta(days=days)
     
     data = Transaction.objects.filter(
-        created_at__date__gte=start_date,
-        status='completed'
-    ).extra(
-        {'date': "date(created_at)"}
+    created_at__date__gte=start_date,
+    status='completed'
+    ).annotate(
+        date=TruncDate('created_at')
     ).values('date').annotate(
         count=Count('id'),
         amount=Sum('amount')
     ).order_by('date')
-    
+
     return JsonResponse({
-        'labels': [item['date'].strftime('%Y-%m-%d') for item in data],
+        'labels': [item['date'].strftime('%Y-%m-%d') for item in data],  # now safe
         'counts': [item['count'] for item in data],
         'amounts': [float(item['amount']) for item in data]
     })
