@@ -169,27 +169,6 @@ def agent_dashboard(request):
     
     return render(request, 'dashboards/agent_dashboard.html', context)
 
-@login_required
-def customer_dashboard(request):
-    """
-    Customer dashboard with account information
-    """
-    if request.user.user_type not in ['customer', 'admin']:
-        messages.error(request, 'Access denied.')
-        return redirect('login')
-    
-    user_accounts = BankAccount.objects.filter(customer=request.user)
-    recent_transactions = Transaction.objects.filter(
-        account__customer=request.user
-    ).order_by('-created_at')[:5]
-    
-    context = {
-        'user': request.user,
-        'accounts': user_accounts,
-        'recent_transactions': recent_transactions,
-        'total_balance': sum(account.balance for account in user_accounts),
-    }
-    return render(request, 'dashboards/customer_dashboard.html', context)
 
 def get_admin_dashboard_context():
     """
@@ -401,3 +380,631 @@ def custom_404(request, exception=None):
 
 def custom_500(request):
     return render(request, "errors/500.html", status=500)
+
+
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.http import JsonResponse
+from django.db.models import Sum, Q
+from django.utils import timezone
+from django.core.mail import send_mail
+from django.conf import settings
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
+from decimal import Decimal
+import json
+from datetime import datetime, timedelta
+from .models import (
+    User, BankAccount, Transaction, Notification, 
+    FeeStructure, UserTransactionLimit, BankAgent
+)
+
+@login_required
+def customer_dashboard(request):
+    """Main customer dashboard view"""
+    try:
+        # Get user's primary account or first active account
+        account = BankAccount.objects.filter(
+            customer=request.user,
+            status='active'
+        ).first()
+        
+        if not account:
+            messages.error(request, "No active account found. Please contact customer service.")
+            return render(request, 'dashboards/customer_dashboard.html', {'no_account': True})
+        
+        # Get recent transactions (last 10)
+        recent_transactions = Transaction.objects.filter(
+            account=account
+        ).order_by('-created_at')[:10]
+        
+        # Get transaction summary for current month
+        current_month = timezone.now().replace(day=1)
+        monthly_transactions = Transaction.objects.filter(
+            account=account,
+            created_at__gte=current_month,
+            status='completed'
+        )
+        
+        # Calculate monthly stats
+        monthly_deposits = monthly_transactions.filter(
+            transaction_type='deposit'
+        ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+        
+        monthly_withdrawals = monthly_transactions.filter(
+            transaction_type='withdrawal'
+        ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+        
+        monthly_transfers_sent = monthly_transactions.filter(
+            transaction_type='transfer'
+        ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+        
+        # Get user transaction limits
+        try:
+            limits = UserTransactionLimit.objects.get(user=request.user)
+        except UserTransactionLimit.DoesNotExist:
+            # Create default limits if they don't exist
+            limits = UserTransactionLimit.objects.create(user=request.user)
+        
+        # Get unread notifications
+        unread_notifications = Notification.objects.filter(
+            user=request.user,
+            is_read=False
+        ).order_by('-created_at')[:5]
+        
+        context = {
+            'account': account,
+            'recent_transactions': recent_transactions,
+            'monthly_deposits': monthly_deposits,
+            'monthly_withdrawals': monthly_withdrawals,
+            'monthly_transfers': monthly_transfers_sent,
+            'limits': limits,
+            'unread_notifications': unread_notifications,
+        }
+        
+        return render(request, 'dashboards/customer_dashboard.html', context)
+    
+    except Exception as e:
+        messages.error(request, f"Error loading dashboard: {str(e)}")
+        return render(request, 'dashboards/customer_dashboard.html', {'error': True})
+
+@login_required
+def deposit_view(request):
+    """Deposit money view"""
+    account = BankAccount.objects.filter(
+        customer=request.user,
+        status='active'
+    ).first()
+    
+    if not account:
+        messages.error(request, "No active account found.")
+        return redirect('customer_dashboard')
+    
+    # Get available agents for deposit
+    agents = BankAgent.objects.filter(is_active=True)
+    
+    context = {
+        'account': account,
+        'agents': agents,
+    }
+    
+    return render(request, 'customer/deposit.html', context)
+
+@login_required
+def withdrawal_view(request):
+    """Withdraw money view"""
+    account = BankAccount.objects.filter(
+        customer=request.user,
+        status='active'
+    ).first()
+    
+    if not account:
+        messages.error(request, "No active account found.")
+        return redirect('customer_dashboard')
+    
+    # Get user limits
+    try:
+        limits = UserTransactionLimit.objects.get(user=request.user)
+    except UserTransactionLimit.DoesNotExist:
+        limits = UserTransactionLimit.objects.create(user=request.user)
+    
+    # Get available agents
+    agents = BankAgent.objects.filter(is_active=True)
+    
+    context = {
+        'account': account,
+        'limits': limits,
+        'agents': agents,
+    }
+    
+    return render(request, 'customer/withdrawal.html', context)
+
+@login_required
+def transfer_view(request):
+    """Transfer money view"""
+    account = BankAccount.objects.filter(
+        customer=request.user,
+        status='active'
+    ).first()
+    
+    if not account:
+        messages.error(request, "No active account found.")
+        return redirect('customer_dashboard')
+    
+    # Get user limits
+    try:
+        limits = UserTransactionLimit.objects.get(user=request.user)
+    except UserTransactionLimit.DoesNotExist:
+        limits = UserTransactionLimit.objects.create(user=request.user)
+    
+    context = {
+        'account': account,
+        'limits': limits,
+    }
+    
+    return render(request, 'customer/transfer.html', context)
+
+# AJAX API Views
+@csrf_exempt
+@require_http_methods(["POST"])
+@login_required
+def api_deposit(request):
+    """API endpoint for deposit"""
+    try:
+        data = json.loads(request.body)
+        amount = Decimal(str(data.get('amount', 0)))
+        agent_id = data.get('agent_id')
+        
+        if amount <= 0:
+            return JsonResponse({'success': False, 'error': 'Invalid amount'})
+        
+        # Get user's account
+        account = BankAccount.objects.filter(
+            customer=request.user,
+            status='active'
+        ).first()
+        
+        if not account:
+            return JsonResponse({'success': False, 'error': 'No active account found'})
+        
+        # Get agent if specified
+        agent = None
+        if agent_id:
+            agent = get_object_or_404(BankAgent, id=agent_id, is_active=True)
+        
+        # Calculate fee
+        fee = calculate_transaction_fee('agent_deposit', amount)
+        total_deposit = amount - fee
+        
+        # Create transaction
+        balance_before = account.balance
+        account.balance += total_deposit
+        account.available_balance += total_deposit
+        account.last_transaction_date = timezone.now()
+        account.save()
+        
+        # Create transaction record
+        transaction = Transaction.objects.create(
+            account=account,
+            transaction_type='deposit',
+            amount=amount,
+            fee=fee,
+            total_amount=total_deposit,
+            balance_before=balance_before,
+            balance_after=account.balance,
+            channel='agent',
+            description=f'Cash deposit via agent {agent.business_name if agent else "N/A"}',
+            status='completed',
+            agent=agent,
+            processed_at=timezone.now()
+        )
+        
+        # Send notification
+        send_transaction_notification(
+            user=request.user,
+            transaction=transaction,
+            notification_type='deposit'
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'transaction_id': transaction.transaction_id,
+            'new_balance': float(account.balance),
+            'fee': float(fee)
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@csrf_exempt
+@require_http_methods(["POST"])
+@login_required
+def api_withdrawal(request):
+    """API endpoint for withdrawal"""
+    try:
+        data = json.loads(request.body)
+        amount = Decimal(str(data.get('amount', 0)))
+        agent_id = data.get('agent_id')
+        
+        if amount <= 0:
+            return JsonResponse({'success': False, 'error': 'Invalid amount'})
+        
+        # Get user's account
+        account = BankAccount.objects.filter(
+            customer=request.user,
+            status='active'
+        ).first()
+        
+        if not account:
+            return JsonResponse({'success': False, 'error': 'No active account found'})
+        
+        # Check limits
+        limits = UserTransactionLimit.objects.get_or_create(user=request.user)[0]
+        
+        if amount > limits.single_transaction_limit:
+            return JsonResponse({
+                'success': False, 
+                'error': f'Amount exceeds single transaction limit of KES {limits.single_transaction_limit:,.2f}'
+            })
+        
+        # Check daily limit
+        today = timezone.now().date()
+        daily_withdrawals = Transaction.objects.filter(
+            account=account,
+            transaction_type='withdrawal',
+            created_at__date=today,
+            status='completed'
+        ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+        
+        if daily_withdrawals + amount > limits.daily_withdrawal_limit:
+            return JsonResponse({
+                'success': False,
+                'error': f'Daily withdrawal limit of KES {limits.daily_withdrawal_limit:,.2f} exceeded'
+            })
+        
+        # Get agent if specified
+        agent = None
+        if agent_id:
+            agent = get_object_or_404(BankAgent, id=agent_id, is_active=True)
+        
+        # Calculate fee
+        fee = calculate_transaction_fee('agent_withdrawal', amount)
+        total_debit = amount + fee
+        
+        # Check balance
+        if account.available_balance < total_debit:
+            return JsonResponse({'success': False, 'error': 'Insufficient funds'})
+        
+        # Process withdrawal
+        balance_before = account.balance
+        account.balance -= total_debit
+        account.available_balance -= total_debit
+        account.last_transaction_date = timezone.now()
+        account.save()
+        
+        # Create transaction record
+        transaction = Transaction.objects.create(
+            account=account,
+            transaction_type='withdrawal',
+            amount=amount,
+            fee=fee,
+            total_amount=total_debit,
+            balance_before=balance_before,
+            balance_after=account.balance,
+            channel='agent',
+            description=f'Cash withdrawal via agent {agent.business_name if agent else "N/A"}',
+            status='completed',
+            agent=agent,
+            processed_at=timezone.now()
+        )
+        
+        # Send notification
+        send_transaction_notification(
+            user=request.user,
+            transaction=transaction,
+            notification_type='withdrawal'
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'transaction_id': transaction.transaction_id,
+            'new_balance': float(account.balance),
+            'fee': float(fee)
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@csrf_exempt
+@require_http_methods(["POST"])
+@login_required
+def api_transfer(request):
+    """API endpoint for transfer"""
+    try:
+        data = json.loads(request.body)
+        amount = Decimal(str(data.get('amount', 0)))
+        beneficiary_account_number = data.get('account_number', '').strip()
+        beneficiary_name = data.get('beneficiary_name', '').strip()
+        reference = data.get('reference', '').strip()
+        
+        if amount <= 0:
+            return JsonResponse({'success': False, 'error': 'Invalid amount'})
+        
+        if not beneficiary_account_number:
+            return JsonResponse({'success': False, 'error': 'Beneficiary account number required'})
+        
+        # Get sender's account
+        sender_account = BankAccount.objects.filter(
+            customer=request.user,
+            status='active'
+        ).first()
+        
+        if not sender_account:
+            return JsonResponse({'success': False, 'error': 'No active account found'})
+        
+        # Check limits
+        limits = UserTransactionLimit.objects.get_or_create(user=request.user)[0]
+        
+        if amount > limits.single_transaction_limit:
+            return JsonResponse({
+                'success': False,
+                'error': f'Amount exceeds single transaction limit of KES {limits.single_transaction_limit:,.2f}'
+            })
+        
+        # Check daily limit
+        today = timezone.now().date()
+        daily_transfers = Transaction.objects.filter(
+            account=sender_account,
+            transaction_type='transfer',
+            created_at__date=today,
+            status='completed'
+        ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+        
+        if daily_transfers + amount > limits.daily_transfer_limit:
+            return JsonResponse({
+                'success': False,
+                'error': f'Daily transfer limit of KES {limits.daily_transfer_limit:,.2f} exceeded'
+            })
+        
+        # Find beneficiary account
+        try:
+            beneficiary_account = BankAccount.objects.get(
+                account_number=beneficiary_account_number,
+                status='active'
+            )
+        except BankAccount.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Beneficiary account not found'})
+        
+        # Check if trying to transfer to same account
+        if sender_account.id == beneficiary_account.id:
+            return JsonResponse({'success': False, 'error': 'Cannot transfer to same account'})
+        
+        # Calculate fee
+        fee = calculate_transaction_fee('mobile_transfer_own', amount)
+        total_debit = amount + fee
+        
+        # Check balance
+        if sender_account.available_balance < total_debit:
+            return JsonResponse({'success': False, 'error': 'Insufficient funds'})
+        
+        # Process transfer (debit sender)
+        sender_balance_before = sender_account.balance
+        sender_account.balance -= total_debit
+        sender_account.available_balance -= total_debit
+        sender_account.last_transaction_date = timezone.now()
+        sender_account.save()
+        
+        # Credit beneficiary
+        beneficiary_balance_before = beneficiary_account.balance
+        beneficiary_account.balance += amount
+        beneficiary_account.available_balance += amount
+        beneficiary_account.last_transaction_date = timezone.now()
+        beneficiary_account.save()
+        
+        # Create debit transaction for sender
+        debit_transaction = Transaction.objects.create(
+            account=sender_account,
+            transaction_type='transfer',
+            amount=amount,
+            fee=fee,
+            total_amount=total_debit,
+            balance_before=sender_balance_before,
+            balance_after=sender_account.balance,
+            channel='mobile',
+            description=f'Transfer to {beneficiary_name or beneficiary_account.customer.get_full_name()}',
+            reference_number=reference,
+            status='completed',
+            beneficiary_account=beneficiary_account,
+            beneficiary_name=beneficiary_name or beneficiary_account.customer.get_full_name(),
+            processed_at=timezone.now()
+        )
+        
+        # Create credit transaction for beneficiary
+        credit_transaction = Transaction.objects.create(
+            account=beneficiary_account,
+            transaction_type='deposit',
+            amount=amount,
+            fee=Decimal('0'),
+            total_amount=amount,
+            balance_before=beneficiary_balance_before,
+            balance_after=beneficiary_account.balance,
+            channel='mobile',
+            description=f'Transfer from {sender_account.customer.get_full_name()}',
+            reference_number=reference,
+            status='completed',
+            processed_at=timezone.now()
+        )
+        
+        # Send notifications
+        send_transaction_notification(
+            user=request.user,
+            transaction=debit_transaction,
+            notification_type='transfer_sent'
+        )
+        
+        send_transaction_notification(
+            user=beneficiary_account.customer,
+            transaction=credit_transaction,
+            notification_type='transfer_received'
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'transaction_id': debit_transaction.transaction_id,
+            'new_balance': float(sender_account.balance),
+            'fee': float(fee),
+            'beneficiary_name': beneficiary_account.customer.get_full_name()
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@require_http_methods(["POST"])
+@login_required
+def api_verify_account(request):
+    """API endpoint to verify account number"""
+    try:
+        data = json.loads(request.body)
+        account_number = data.get('account_number', '').strip()
+        
+        if not account_number:
+            return JsonResponse({'success': False, 'error': 'Account number required'})
+        
+        try:
+            account = BankAccount.objects.get(
+                account_number=account_number,
+                status='active'
+            )
+            
+            return JsonResponse({
+                'success': True,
+                'account_name': account.customer.get_full_name(),
+                'account_type': account.account_type.name
+            })
+            
+        except BankAccount.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Account not found'})
+            
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+# Helper functions
+def calculate_transaction_fee(transaction_type, amount):
+    """Calculate transaction fee based on type and amount"""
+    try:
+        fee_structure = FeeStructure.objects.get(
+            transaction_type=transaction_type,
+            is_active=True
+        )
+        
+        # Calculate percentage fee
+        percentage_fee = amount * (fee_structure.percentage_fee / 100)
+        
+        # Use fixed fee or percentage fee, whichever is higher
+        calculated_fee = max(fee_structure.fixed_fee, percentage_fee)
+        
+        # Apply minimum and maximum limits
+        if calculated_fee < fee_structure.minimum_fee:
+            calculated_fee = fee_structure.minimum_fee
+        
+        if fee_structure.maximum_fee and calculated_fee > fee_structure.maximum_fee:
+            calculated_fee = fee_structure.maximum_fee
+        
+        return calculated_fee
+        
+    except FeeStructure.DoesNotExist:
+        # Default fees if fee structure not found
+        default_fees = {
+            'agent_deposit': Decimal('10.00'),
+            'agent_withdrawal': Decimal('35.00'),
+            'mobile_transfer_own': Decimal('25.00'),
+            'mobile_transfer_other': Decimal('50.00'),
+        }
+        return default_fees.get(transaction_type, Decimal('0.00'))
+
+def send_transaction_notification(user, transaction, notification_type):
+    """Send transaction notification via email and in-app"""
+    try:
+        # Create notification messages
+        notification_messages = {
+            'deposit': {
+                'title': 'Money Received',
+                'message': f'You have received KES {transaction.amount:,.2f} in your account {transaction.account.account_number}. Your new balance is KES {transaction.balance_after:,.2f}.',
+                'email_subject': 'Equity Bank - Money Received'
+            },
+            'withdrawal': {
+                'title': 'Money Withdrawn',
+                'message': f'You have withdrawn KES {transaction.amount:,.2f} from your account {transaction.account.account_number}. Fee: KES {transaction.fee:,.2f}. Your new balance is KES {transaction.balance_after:,.2f}.',
+                'email_subject': 'Equity Bank - Withdrawal Confirmation'
+            },
+            'transfer_sent': {
+                'title': 'Money Sent',
+                'message': f'You have sent KES {transaction.amount:,.2f} to {transaction.beneficiary_name}. Fee: KES {transaction.fee:,.2f}. Your new balance is KES {transaction.balance_after:,.2f}.',
+                'email_subject': 'Equity Bank - Transfer Sent'
+            },
+            'transfer_received': {
+                'title': 'Money Received',
+                'message': f'You have received KES {transaction.amount:,.2f} from {transaction.description.replace("Transfer from ", "")}. Your new balance is KES {transaction.balance_after:,.2f}.',
+                'email_subject': 'Equity Bank - Money Received'
+            }
+        }
+        
+        notification_data = notification_messages.get(notification_type, {
+            'title': 'Transaction Alert',
+            'message': f'Transaction of KES {transaction.amount:,.2f} processed.',
+            'email_subject': 'Equity Bank - Transaction Alert'
+        })
+        
+        # Create in-app notification
+        Notification.objects.create(
+            user=user,
+            notification_type='transaction',
+            channel='in_app',
+            title=notification_data['title'],
+            message=notification_data['message'],
+            status='sent',
+            related_transaction=transaction,
+            sent_at=timezone.now()
+        )
+        
+        # Send email notification
+        if user.email:
+            email_message = f"""
+Dear {user.get_full_name() or user.username},
+
+{notification_data['message']}
+
+Transaction Details:
+- Transaction ID: {transaction.transaction_id}
+- Date: {transaction.created_at.strftime('%d/%m/%Y %H:%M:%S')}
+- Channel: {transaction.get_channel_display()}
+
+For any inquiries, please contact our customer service.
+
+Best regards,
+Equity Bank Kenya
+            """
+            
+            send_mail(
+                subject=notification_data['email_subject'],
+                message=email_message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[user.email],
+                fail_silently=True
+            )
+            
+            # Create email notification record
+            Notification.objects.create(
+                user=user,
+                notification_type='transaction',
+                channel='email',
+                title=notification_data['email_subject'],
+                message=email_message,
+                status='sent',
+                related_transaction=transaction,
+                sent_at=timezone.now()
+            )
+            
+    except Exception as e:
+        print(f"Error sending notification: {e}")
