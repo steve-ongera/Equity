@@ -207,6 +207,23 @@ SMS_BACKEND = 'banking.sms.AfricasTalkingSMSBackend'
 AFRICASTALKING_USERNAME = config('AFRICASTALKING_USERNAME', default='')
 AFRICASTALKING_API_KEY = config('AFRICASTALKING_API_KEY', default='')
 
+
+# settings.py
+
+from django.contrib.messages import constants as messages
+
+MESSAGE_STORAGE = 'django.contrib.messages.storage.session.SessionStorage'
+
+# Map Django's message levels to Bootstrap alert classes
+MESSAGE_TAGS = {
+    messages.DEBUG: 'secondary',
+    messages.INFO: 'info',
+    messages.SUCCESS: 'success',
+    messages.WARNING: 'warning',
+    messages.ERROR: 'danger',  # maps Django error to Bootstrap danger
+}
+
+
 # # Banking specific settings
 # BANKING_SETTINGS = {
 #     # Default account settings
