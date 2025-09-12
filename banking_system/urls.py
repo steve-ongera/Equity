@@ -20,5 +20,18 @@ urlpatterns = [
     path('api/branch-performance/', views.get_branch_performance_data, name='api_branch_performance'),
     path('api/forex-data/', views.get_forex_data, name='api_forex_data'),
     path('api/monthly-summary/', views.get_monthly_summary_data, name='api_monthly_summary'),
+
+    # Transaction Views
+    path('deposit/', views.deposit_view, name='deposit'),
+    path('withdrawal/', views.withdrawal_view, name='withdrawal'),
+    path('transfer/', views.transfer_view, name='transfer'),
+    
+    # API Endpoints
+    path('api/deposit/', views.api_deposit, name='api_deposit'),
+    path('api/withdrawal/', views.api_withdrawal, name='api_withdrawal'),
+    path('api/transfer/', views.api_transfer, name='api_transfer'),
+    path('api/verify-account/', views.api_verify_account, name='api_verify_account'),
+    
+  
 ]
 
