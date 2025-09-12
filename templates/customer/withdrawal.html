@@ -212,7 +212,7 @@
     <!-- Breadcrumb -->
     <nav aria-label="breadcrumb" class="mb-4">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'transactions:customer_dashboard' %}" class="back-link">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'customer_dashboard' %}" class="back-link">Dashboard</a></li>
             <li class="breadcrumb-item active">Withdraw Money</li>
         </ol>
     </nav>
@@ -449,7 +449,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" onclick="window.location.href='{% url 'transactions:customer_dashboard' %}'">
+                <button type="button" class="btn btn-primary" onclick="window.location.href='{% url 'customer_dashboard' %}'">
                     Go to Dashboard
                 </button>
             </div>
@@ -593,7 +593,7 @@ $(document).ready(function() {
         
         // Make AJAX request
         $.ajax({
-            url: '{% url "transactions:api_withdrawal" %}',
+            url: '{% url "api_withdrawal" %}',
             method: 'POST',
             data: JSON.stringify(formData),
             contentType: 'application/json',
