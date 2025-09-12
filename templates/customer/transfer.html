@@ -1,0 +1,363 @@
+{% extends 'customer_base.html' %}
+{% load humanize %}
+
+{% block title %}Send Money - Equity Bank{% endblock %}
+
+{% block extra_css %}
+<style>
+    .transaction-card {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        border: 1px solid #e9ecef;
+        overflow: hidden;
+    }
+    
+    .transaction-header {
+        background: linear-gradient(135deg, #007bff, #6610f2);
+        color: white;
+        padding: 30px;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .transaction-header::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 200%;
+        height: 200%;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="2" fill="white" fill-opacity="0.08"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+    }
+    
+    .transaction-header h3 {
+        margin: 0;
+        font-size: 2rem;
+        font-weight: 700;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .transaction-icon {
+        width: 80px;
+        height: 80px;
+        background: rgba(255,255,255,0.2);
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        margin: 0 auto 20px;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .form-control, .form-select {
+        border: 2px solid #e9ecef;
+        border-radius: 10px;
+        padding: 15px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: #007bff;
+        box-shadow: 0 0 0 0.25rem rgba(0, 123, 255, 0.15);
+    }
+    
+    .form-label {
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 8px;
+    }
+    
+    .btn-transfer {
+        background: linear-gradient(135deg, #007bff, #6610f2);
+        border: none;
+        color: white;
+        padding: 15px 30px;
+        border-radius: 10px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .btn-transfer:hover {
+        background: linear-gradient(135deg, #0056b3, #520dc2);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4);
+    }
+    
+    .btn-transfer:disabled {
+        background: #6c757d;
+        transform: none;
+        box-shadow: none;
+    }
+    
+    .account-info {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 20px;
+        border: 1px solid #e9ecef;
+        margin-bottom: 25px;
+    }
+    
+    .limits-info {
+        background: #e3f2fd;
+        border: 1px solid #2196f3;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 25px;
+    }
+    
+    .beneficiary-info {
+        background: #e8f5e8;
+        border: 1px solid #28a745;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        display: none;
+    }
+    
+    .fee-info {
+        background: #fff3cd;
+        border: 1px solid #ffc107;
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 20px;
+    }
+    
+    .verify-btn {
+        background: linear-gradient(135deg, #28a745, #20c997);
+        border: none;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    
+    .verify-btn:hover {
+        background: linear-gradient(135deg, #218838, #1ea47a);
+        color: white;
+        transform: translateY(-1px);
+    }
+    
+    .loading-spinner {
+        display: none;
+        width: 20px;
+        height: 20px;
+        border: 2px solid #ffffff;
+        border-top: 2px solid transparent;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    .back-link {
+        color: #007bff;
+        text-decoration: none;
+        font-weight: 500;
+        transition: color 0.3s ease;
+    }
+    
+    .back-link:hover {
+        color: #0056b3;
+    }
+    
+    .limit-bar {
+        height: 8px;
+        background: #e9ecef;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    
+    .limit-progress {
+        height: 100%;
+        background: linear-gradient(90deg, #28a745, #ffc107, #dc3545);
+        transition: width 0.3s ease;
+    }
+    
+    .recent-recipient {
+        border: 2px solid #e9ecef;
+        border-radius: 10px;
+        padding: 15px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-bottom: 10px;
+    }
+    
+    .recent-recipient:hover {
+        border-color: #007bff;
+        box-shadow: 0 4px 15px rgba(0, 123, 255, 0.15);
+    }
+    
+    .recent-recipient.selected {
+        border-color: #007bff;
+        background: rgba(0, 123, 255, 0.05);
+    }
+    
+    .step-indicator {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 30px;
+    }
+    
+    .step {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #e9ecef;
+        color: #6c757d;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        position: relative;
+    }
+    
+    .step.active {
+        background: #007bff;
+        color: white;
+    }
+    
+    .step.completed {
+        background: #28a745;
+        color: white;
+    }
+    
+    .step:not(:last-child)::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        right: -30px;
+        width: 30px;
+        height: 2px;
+        background: #e9ecef;
+    }
+    
+    .step.completed:not(:last-child)::after {
+        background: #28a745;
+    }
+    
+    @media (max-width: 768px) {
+        .transaction-header {
+            padding: 20px;
+        }
+        
+        .transaction-header h3 {
+            font-size: 1.5rem;
+        }
+        
+        .transaction-icon {
+            width: 60px;
+            height: 60px;
+            font-size: 1.5rem;
+        }
+        
+        .step {
+            width: 30px;
+            height: 30px;
+        }
+        
+        .step:not(:last-child)::after {
+            right: -25px;
+            width: 25px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'transactions:customer_dashboard' %}" class="back-link">Dashboard</a></li>
+            <li class="breadcrumb-item active">Send Money</li>
+        </ol>
+    </nav>
+    
+    <div class="row justify-content-center">
+        <div class="col-xl-8 col-lg-10">
+            <div class="transaction-card">
+                <!-- Header -->
+                <div class="transaction-header">
+                    <div class="transaction-icon">
+                        <i class="fas fa-exchange-alt"></i>
+                    </div>
+                    <h3>Send Money</h3>
+                    <p class="mb-0 opacity-75">Transfer money to other Equity Bank accounts instantly</p>
+                </div>
+                
+                <!-- Form Content -->
+                <div class="p-4">
+                    <!-- Step Indicator -->
+                    <div class="step-indicator">
+                        <div class="step active" id="step1">1</div>
+                        <div class="step" id="step2">2</div>
+                        <div class="step" id="step3">3</div>
+                    </div>
+                    
+                    <!-- Account Information -->
+                    <div class="account-info">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 class="mb-2">From Account</h6>
+                                <div><strong>Account Number:</strong> {{ account.account_number }}</div>
+                                <div><strong>Account Type:</strong> {{ account.account_type.name }}</div>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="mb-2">Available Balance</h6>
+                                <div class="h5 text-success mb-0">KES {{ account.available_balance|floatformat:2|intcomma }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Transaction Limits -->
+                    <div class="limits-info">
+                        <h6 class="mb-3"><i class="fas fa-shield-alt me-2"></i>Daily Transfer Limits</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Single Transaction:</span>
+                                    <strong>KES {{ limits.single_transaction_limit|floatformat:0|intcomma }}</strong>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Daily Limit:</span>
+                                    <strong>KES {{ limits.daily_transfer_limit|floatformat:0|intcomma }}</strong>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Used Today:</span>
+                                    <strong class="text-warning">KES {{ limits.current_daily_transfers|floatformat:0|intcomma }}</strong>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Remaining:</span>
+                                    <strong class="text-success">KES {{ remaining_transfer_limit|floatformat:0|intcomma }}</strong>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <div class="limit-bar">
+                                <div class="limit-progress" style="width: {{ transfer_limit_percentage }}%"></div>
+                            </div>
+                            <div class="small text-muted mt-1">{{ transfer_limit_percentage }}% of daily limit used</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Transfer Form -->
+                    <form id="transferForm">
+                        {% csrf_token %}
+                        
+                        <!-- Step 1: Recipient Details -->
+                        <div class="form

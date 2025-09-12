@@ -1,0 +1,681 @@
+{% extends 'customer_base.html' %}
+{% load humanize %}
+
+{% block title %}Withdraw Money - Equity Bank{% endblock %}
+
+{% block extra_css %}
+<style>
+    .transaction-card {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        border: 1px solid #e9ecef;
+        overflow: hidden;
+    }
+    
+    .transaction-header {
+        background: linear-gradient(135deg, #dc3545, #fd7e14);
+        color: white;
+        padding: 30px;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .transaction-header::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 200%;
+        height: 200%;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="2" fill="white" fill-opacity="0.08"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+    }
+    
+    .transaction-header h3 {
+        margin: 0;
+        font-size: 2rem;
+        font-weight: 700;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .transaction-icon {
+        width: 80px;
+        height: 80px;
+        background: rgba(255,255,255,0.2);
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        margin: 0 auto 20px;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .form-control, .form-select {
+        border: 2px solid #e9ecef;
+        border-radius: 10px;
+        padding: 15px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: #dc3545;
+        box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.15);
+    }
+    
+    .form-label {
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 8px;
+    }
+    
+    .btn-withdraw {
+        background: linear-gradient(135deg, #dc3545, #fd7e14);
+        border: none;
+        color: white;
+        padding: 15px 30px;
+        border-radius: 10px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .btn-withdraw:hover {
+        background: linear-gradient(135deg, #c82333, #dc6c14);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(220, 53, 69, 0.4);
+    }
+    
+    .btn-withdraw:disabled {
+        background: #6c757d;
+        transform: none;
+        box-shadow: none;
+    }
+    
+    .account-info {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 20px;
+        border: 1px solid #e9ecef;
+        margin-bottom: 25px;
+    }
+    
+    .limits-info {
+        background: #e3f2fd;
+        border: 1px solid #2196f3;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 25px;
+    }
+    
+    .agent-card {
+        border: 2px solid #e9ecef;
+        border-radius: 10px;
+        padding: 15px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-bottom: 15px;
+    }
+    
+    .agent-card:hover {
+        border-color: #dc3545;
+        box-shadow: 0 4px 15px rgba(220, 53, 69, 0.15);
+    }
+    
+    .agent-card.selected {
+        border-color: #dc3545;
+        background: rgba(220, 53, 69, 0.05);
+    }
+    
+    .fee-info {
+        background: #fff3cd;
+        border: 1px solid #ffc107;
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 20px;
+    }
+    
+    .warning-info {
+        background: #f8d7da;
+        border: 1px solid #dc3545;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 20px;
+        color: #721c24;
+    }
+    
+    .loading-spinner {
+        display: none;
+        width: 20px;
+        height: 20px;
+        border: 2px solid #ffffff;
+        border-top: 2px solid transparent;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    .back-link {
+        color: #dc3545;
+        text-decoration: none;
+        font-weight: 500;
+        transition: color 0.3s ease;
+    }
+    
+    .back-link:hover {
+        color: #c82333;
+    }
+    
+    .limit-bar {
+        height: 8px;
+        background: #e9ecef;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    
+    .limit-progress {
+        height: 100%;
+        background: linear-gradient(90deg, #28a745, #ffc107, #dc3545);
+        transition: width 0.3s ease;
+    }
+    
+    @media (max-width: 768px) {
+        .transaction-header {
+            padding: 20px;
+        }
+        
+        .transaction-header h3 {
+            font-size: 1.5rem;
+        }
+        
+        .transaction-icon {
+            width: 60px;
+            height: 60px;
+            font-size: 1.5rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'transactions:customer_dashboard' %}" class="back-link">Dashboard</a></li>
+            <li class="breadcrumb-item active">Withdraw Money</li>
+        </ol>
+    </nav>
+    
+    <div class="row justify-content-center">
+        <div class="col-xl-8 col-lg-10">
+            <div class="transaction-card">
+                <!-- Header -->
+                <div class="transaction-header">
+                    <div class="transaction-icon">
+                        <i class="fas fa-minus"></i>
+                    </div>
+                    <h3>Withdraw Money</h3>
+                    <p class="mb-0 opacity-75">Withdraw cash from your account through our agent network</p>
+                </div>
+                
+                <!-- Form Content -->
+                <div class="p-4">
+                    <!-- Account Information -->
+                    <div class="account-info">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 class="mb-2">Account Details</h6>
+                                <div><strong>Account Number:</strong> {{ account.account_number }}</div>
+                                <div><strong>Account Type:</strong> {{ account.account_type.name }}</div>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="mb-2">Available Balance</h6>
+                                <div class="h5 text-success mb-0">KES {{ account.available_balance|floatformat:2|intcomma }}</div>
+                                <div class="small text-muted">Total Balance: KES {{ account.balance|floatformat:2|intcomma }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Transaction Limits -->
+                    <div class="limits-info">
+                        <h6 class="mb-3"><i class="fas fa-shield-alt me-2"></i>Daily Withdrawal Limits</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Single Transaction:</span>
+                                    <strong>KES {{ limits.single_transaction_limit|floatformat:0|intcomma }}</strong>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Daily Limit:</span>
+                                    <strong>KES {{ limits.daily_withdrawal_limit|floatformat:0|intcomma }}</strong>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Used Today:</span>
+                                    <strong class="text-danger">KES {{ limits.current_daily_withdrawals|floatformat:0|intcomma }}</strong>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Remaining:</span>
+                                    <strong class="text-success">KES {{ remaining_limit|floatformat:0|intcomma }}</strong>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <div class="limit-bar">
+                                <div class="limit-progress" style="width: {{ limit_percentage }}%"></div>
+                            </div>
+                            <div class="small text-muted mt-1">{{ limit_percentage }}% of daily limit used</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Warning for low balance -->
+                    {% if account.available_balance < 1000 %}
+                    <div class="warning-info">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Low Balance Warning:</strong> Your account balance is low. Please ensure you have sufficient funds for the withdrawal.
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Withdrawal Form -->
+                    <form id="withdrawalForm">
+                        {% csrf_token %}
+                        
+                        <!-- Amount Input -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label for="amount" class="form-label">Withdrawal Amount</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">KES</span>
+                                    <input type="number" 
+                                           class="form-control" 
+                                           id="amount" 
+                                           name="amount" 
+                                           placeholder="0.00" 
+                                           min="10" 
+                                           max="{{ account.available_balance }}"
+                                           step="0.01" 
+                                           required>
+                                </div>
+                                <div class="form-text">
+                                    Min: KES 10.00 | Max: KES {{ account.available_balance|floatformat:2|intcomma }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="reference" class="form-label">Reference (Optional)</label>
+                                <input type="text" 
+                                       class="form-control" 
+                                       id="reference" 
+                                       name="reference" 
+                                       placeholder="Enter reference">
+                                <div class="form-text">For your own reference</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Quick Amount Buttons -->
+                        <div class="mb-4">
+                            <label class="form-label">Quick Amounts</label>
+                            <div class="d-flex flex-wrap gap-2">
+                                <button type="button" class="btn btn-outline-secondary quick-amount" data-amount="500">KES 500</button>
+                                <button type="button" class="btn btn-outline-secondary quick-amount" data-amount="1000">KES 1,000</button>
+                                <button type="button" class="btn btn-outline-secondary quick-amount" data-amount="2000">KES 2,000</button>
+                                <button type="button" class="btn btn-outline-secondary quick-amount" data-amount="5000">KES 5,000</button>
+                                <button type="button" class="btn btn-outline-secondary quick-amount" data-amount="10000">KES 10,000</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Agent Selection -->
+                        <div class="mb-4">
+                            <label class="form-label">Select Agent (Optional)</label>
+                            <div class="row" id="agentSelection">
+                                {% for agent in agents %}
+                                <div class="col-md-6 mb-3">
+                                    <div class="agent-card" data-agent-id="{{ agent.id }}">
+                                        <div class="d-flex align-items-center">
+                                            <div class="me-3">
+                                                <i class="fas fa-store fa-2x text-primary"></i>
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <h6 class="mb-1">{{ agent.business_name }}</h6>
+                                                <div class="small text-muted">{{ agent.business_address|truncatechars:30 }}</div>
+                                                <div class="small"><strong>Code:</strong> {{ agent.agent_code }}</div>
+                                                <div class="small text-success">
+                                                    <i class="fas fa-clock me-1"></i>Available 24/7
+                                                </div>
+                                            </div>
+                                            <div class="text-end">
+                                                <i class="fas fa-check-circle text-success d-none"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% empty %}
+                                <div class="col-12">
+                                    <div class="alert alert-info">
+                                        No agents available at the moment. You can still proceed with the withdrawal.
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <!-- Fee Information -->
+                        <div class="fee-info" id="feeInfo" style="display: none;">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>Transaction Fee:</strong>
+                                    <div class="small text-muted">Based on withdrawal amount</div>
+                                </div>
+                                <div class="text-end">
+                                    <div class="h6 mb-0" id="feeAmount">KES 0.00</div>
+                                </div>
+                            </div>
+                            <hr class="my-2">
+                            <div class="d-flex justify-content-between">
+                                <strong>Total Debit Amount:</strong>
+                                <strong class="text-danger" id="totalDebitAmount">KES 0.00</strong>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <strong>Balance After Withdrawal:</strong>
+                                <strong id="balanceAfter">KES 0.00</strong>
+                            </div>
+                        </div>
+                        
+                        <!-- Submit Button -->
+                        <div class="text-center mt-4">
+                            <button type="submit" class="btn btn-withdraw btn-lg" id="submitBtn">
+                                <span id="submitText">Withdraw Money</span>
+                                <div class="loading-spinner" id="loadingSpinner"></div>
+                            </button>
+                        </div>
+                        
+                        <!-- Terms -->
+                        <div class="text-center mt-3">
+                            <small class="text-muted">
+                                Withdrawals are subject to availability of funds and agent cash limits
+                            </small>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success Modal -->
+<div class="modal fade" id="successModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-check-circle me-2"></i>Withdrawal Successful
+                </h5>
+            </div>
+            <div class="modal-body text-center">
+                <div class="mb-3">
+                    <i class="fas fa-check-circle fa-4x text-success mb-3"></i>
+                    <h4>Withdrawal Completed!</h4>
+                    <p class="text-muted">Your withdrawal request has been processed successfully</p>
+                </div>
+                
+                <div class="bg-light rounded p-3 mb-3">
+                    <div class="row text-start">
+                        <div class="col-6"><strong>Amount:</strong></div>
+                        <div class="col-6" id="successAmount">-</div>
+                        <div class="col-6"><strong>Fee:</strong></div>
+                        <div class="col-6" id="successFee">-</div>
+                        <div class="col-6"><strong>Transaction ID:</strong></div>
+                        <div class="col-6" id="successTransactionId">-</div>
+                        <div class="col-6"><strong>New Balance:</strong></div>
+                        <div class="col-6 text-success" id="successNewBalance">-</div>
+                    </div>
+                </div>
+                
+                <div class="alert alert-warning">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Present your ID and transaction reference to the agent to collect your cash.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="window.location.href='{% url 'transactions:customer_dashboard' %}'">
+                    Go to Dashboard
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Error Modal -->
+<div class="modal fade" id="errorModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Withdrawal Failed
+                </h5>
+            </div>
+            <div class="modal-body text-center">
+                <i class="fas fa-times-circle fa-4x text-danger mb-3"></i>
+                <h4>Unable to Process Withdrawal</h4>
+                <p class="text-muted" id="errorMessage">An error occurred while processing your withdrawal.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Try Again</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    let selectedAgentId = null;
+    const availableBalance = {{ account.available_balance }};
+    const dailyLimit = {{ limits.daily_withdrawal_limit }};
+    const usedToday = {{ limits.current_daily_withdrawals }};
+    const remainingLimit = Math.min(availableBalance, dailyLimit - usedToday);
+    
+    // Agent Selection
+    $('.agent-card').click(function() {
+        $('.agent-card').removeClass('selected');
+        $('.agent-card .fa-check-circle').addClass('d-none');
+        
+        $(this).addClass('selected');
+        $(this).find('.fa-check-circle').removeClass('d-none');
+        
+        selectedAgentId = $(this).data('agent-id');
+    });
+    
+    // Quick Amount Buttons
+    $('.quick-amount').click(function() {
+        const amount = $(this).data('amount');
+        $('#amount').val(amount).trigger('input');
+    });
+    
+    // Amount Change Handler
+    $('#amount').on('input', function() {
+        const amount = parseFloat($(this).val()) || 0;
+        validateAmount(amount);
+        
+        if (amount > 0) {
+            calculateFees(amount);
+        } else {
+            $('#feeInfo').hide();
+        }
+    });
+    
+    // Validate Amount
+    function validateAmount(amount) {
+        const submitBtn = $('#submitBtn');
+        let isValid = true;
+        let message = '';
+        
+        if (amount <= 0) {
+            isValid = false;
+            message = 'Please enter a valid amount';
+        } else if (amount < 10) {
+            isValid = false;
+            message = 'Minimum withdrawal amount is KES 10.00';
+        } else if (amount > availableBalance) {
+            isValid = false;
+            message = 'Amount exceeds available balance';
+        } else if (amount > remainingLimit) {
+            isValid = false;
+            message = 'Amount exceeds daily withdrawal limit';
+        }
+        
+        if (!isValid) {
+            submitBtn.prop('disabled', true);
+            $('#amount').addClass('is-invalid');
+            if (!$('.invalid-feedback').length) {
+                $('#amount').after('<div class="invalid-feedback">' + message + '</div>');
+            } else {
+                $('.invalid-feedback').text(message);
+            }
+        } else {
+            submitBtn.prop('disabled', false);
+            $('#amount').removeClass('is-invalid');
+            $('.invalid-feedback').remove();
+        }
+        
+        return isValid;
+    }
+    
+    // Calculate Fees
+    function calculateFees(amount) {
+        // Agent withdrawal fee - typically KES 35
+        const fee = 35.00;
+        const totalDebit = amount + fee;
+        const balanceAfter = availableBalance - totalDebit;
+        
+        $('#feeAmount').text('KES ' + fee.toFixed(2));
+        $('#totalDebitAmount').text('KES ' + totalDebit.toFixed(2));
+        $('#balanceAfter').text('KES ' + balanceAfter.toFixed(2));
+        $('#feeInfo').show();
+    }
+    
+    // Form Submission
+    $('#withdrawalForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        const amount = parseFloat($('#amount').val());
+        const reference = $('#reference').val();
+        
+        // Validation
+        if (!validateAmount(amount)) {
+            return;
+        }
+        
+        // Show loading state
+        setLoadingState(true);
+        
+        // Prepare data
+        const formData = {
+            amount: amount,
+            agent_id: selectedAgentId,
+            reference: reference,
+            csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val()
+        };
+        
+        // Make AJAX request
+        $.ajax({
+            url: '{% url "transactions:api_withdrawal" %}',
+            method: 'POST',
+            data: JSON.stringify(formData),
+            contentType: 'application/json',
+            headers: {
+                'X-CSRFToken': $('input[name=csrfmiddlewaretoken]').val()
+            },
+            success: function(response) {
+                setLoadingState(false);
+                
+                if (response.success) {
+                    showSuccess(response);
+                } else {
+                    showError(response.error || 'Transaction failed');
+                }
+            },
+            error: function(xhr, status, error) {
+                setLoadingState(false);
+                let errorMessage = 'Network error occurred. Please try again.';
+                
+                if (xhr.responseJSON && xhr.responseJSON.error) {
+                    errorMessage = xhr.responseJSON.error;
+                }
+                
+                showError(errorMessage);
+            }
+        });
+    });
+    
+    // Set Loading State
+    function setLoadingState(loading) {
+        const submitBtn = $('#submitBtn');
+        const submitText = $('#submitText');
+        const loadingSpinner = $('#loadingSpinner');
+        
+        if (loading) {
+            submitBtn.prop('disabled', true);
+            submitText.text('Processing...');
+            loadingSpinner.show();
+        } else {
+            submitBtn.prop('disabled', false);
+            submitText.text('Withdraw Money');
+            loadingSpinner.hide();
+        }
+    }
+    
+    // Show Success
+    function showSuccess(response) {
+        $('#successAmount').text('KES ' + parseFloat(response.amount || 0).toFixed(2));
+        $('#successFee').text('KES ' + parseFloat(response.fee || 0).toFixed(2));
+        $('#successTransactionId').text(response.transaction_id || '-');
+        $('#successNewBalance').text('KES ' + parseFloat(response.new_balance || 0).toFixed(2));
+        
+        $('#successModal').modal('show');
+        
+        // Reset form
+        $('#withdrawalForm')[0].reset();
+        $('.agent-card').removeClass('selected');
+        $('.agent-card .fa-check-circle').addClass('d-none');
+        $('#feeInfo').hide();
+        selectedAgentId = null;
+    }
+    
+    // Show Error
+    function showError(message) {
+        $('#errorMessage').text(message);
+        $('#errorModal').modal('show');
+    }
+    
+    // Format currency input
+    $('#amount').on('blur', function() {
+        const value = parseFloat($(this).val());
+        if (value) {
+            $(this).val(value.toFixed(2));
+        }
+    });
+    
+    // Prevent negative numbers
+    $('#amount').on('input', function() {
+        if ($(this).val() < 0) {
+            $(this).val(0);
+        }
+    });
+});
+</script>
+{% endblock %}

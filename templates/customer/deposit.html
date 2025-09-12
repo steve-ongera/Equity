@@ -1,396 +1,530 @@
-{% extends 'base.html' %}
+{% extends 'customer_base.html' %}
 {% load humanize %}
 
 {% block title %}Deposit Money - Equity Bank{% endblock %}
 
 {% block extra_css %}
 <style>
-    .deposit-card {
+    .transaction-card {
         background: white;
         border-radius: 15px;
-        box-shadow: 0 5px 25px rgba(0,0,0,0.1);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
         border: 1px solid #e9ecef;
         overflow: hidden;
     }
     
-    .deposit-header {
+    .transaction-header {
         background: linear-gradient(135deg, #28a745, #20c997);
         color: white;
-        padding: 2rem;
+        padding: 30px;
         text-align: center;
         position: relative;
+        overflow: hidden;
     }
     
-    .deposit-header::before {
+    .transaction-header::before {
         content: '';
         position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="2" fill="white" fill-opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23dots)"/></svg>');
+        top: -50%;
+        right: -50%;
+        width: 200%;
+        height: 200%;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="2" fill="white" fill-opacity="0.08"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
     }
     
-    .deposit-icon {
-        font-size: 3rem;
-        margin-bottom: 1rem;
-        opacity: 0.9;
-    }
-    
-    .amount-input {
-        font-size: 1.8rem;
+    .transaction-header h3 {
+        margin: 0;
+        font-size: 2rem;
         font-weight: 700;
-        text-align: center;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .transaction-icon {
+        width: 80px;
+        height: 80px;
+        background: rgba(255,255,255,0.2);
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        margin: 0 auto 20px;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .form-control, .form-select {
         border: 2px solid #e9ecef;
         border-radius: 10px;
-        padding: 1rem;
-        color: #28a745;
-        background: #f8fff9;
+        padding: 15px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
     }
     
-    .amount-input:focus {
+    .form-control:focus, .form-select:focus {
         border-color: #28a745;
-        box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
-        background: white;
+        box-shadow: 0 0 0 0.25rem rgba(40, 167, 69, 0.15);
     }
     
-    .quick-amount {
-        border: 2px solid #e9ecef;
-        border-radius: 8px;
-        padding: 0.75rem;
-        background: white;
-        color: #495057;
+    .form-label {
         font-weight: 600;
-        transition: all 0.2s ease;
-        cursor: pointer;
-    }
-    
-    .quick-amount:hover {
-        border-color: #28a745;
-        background: #f8fff9;
-        color: #28a745;
-        transform: translateY(-2px);
-    }
-    
-    .quick-amount.selected {
-        border-color: #28a745;
-        background: #28a745;
-        color: white;
-    }
-    
-    .agent-card {
-        border: 2px solid #e9ecef;
-        border-radius: 10px;
-        padding: 1rem;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        background: white;
-    }
-    
-    .agent-card:hover {
-        border-color: #28a745;
-        background: #f8fff9;
-        transform: translateY(-2px);
-    }
-    
-    .agent-card.selected {
-        border-color: #28a745;
-        background: #28a745;
-        color: white;
-    }
-    
-    .agent-card.selected .text-muted {
-        color: rgba(255, 255, 255, 0.8) !important;
-    }
-    
-    .fee-display {
-        background: #fff3cd;
-        border: 1px solid #ffeaa7;
-        border-radius: 8px;
-        padding: 1rem;
-        color: #856404;
-    }
-    
-    .summary-box {
-        background: #f8f9fa;
-        border-radius: 10px;
-        padding: 1.5rem;
-        border: 1px solid #e9ecef;
+        color: #2c3e50;
+        margin-bottom: 8px;
     }
     
     .btn-deposit {
         background: linear-gradient(135deg, #28a745, #20c997);
         border: none;
         color: white;
-        padding: 1rem 2rem;
+        padding: 15px 30px;
         border-radius: 10px;
         font-weight: 600;
-        font-size: 1.1rem;
-        transition: all 0.2s ease;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
     }
     
     .btn-deposit:hover {
-        background: linear-gradient(135deg, #20c997, #17a2b8);
+        background: linear-gradient(135deg, #218838, #1ea47a);
         color: white;
         transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+        box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
     }
     
     .btn-deposit:disabled {
         background: #6c757d;
         transform: none;
         box-shadow: none;
-        cursor: not-allowed;
+    }
+    
+    .account-info {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 20px;
+        border: 1px solid #e9ecef;
+        margin-bottom: 25px;
+    }
+    
+    .agent-card {
+        border: 2px solid #e9ecef;
+        border-radius: 10px;
+        padding: 15px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-bottom: 15px;
+    }
+    
+    .agent-card:hover {
+        border-color: #28a745;
+        box-shadow: 0 4px 15px rgba(40, 167, 69, 0.15);
+    }
+    
+    .agent-card.selected {
+        border-color: #28a745;
+        background: rgba(40, 167, 69, 0.05);
+    }
+    
+    .fee-info {
+        background: #fff3cd;
+        border: 1px solid #ffc107;
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 20px;
     }
     
     .loading-spinner {
         display: none;
-    }
-    
-    .step {
-        opacity: 0.5;
-        pointer-events: none;
-    }
-    
-    .step.active {
-        opacity: 1;
-        pointer-events: all;
-    }
-    
-    .step-indicator {
-        display: flex;
-        justify-content: center;
-        margin-bottom: 2rem;
-    }
-    
-    .step-item {
-        width: 40px;
-        height: 40px;
+        width: 20px;
+        height: 20px;
+        border: 2px solid #ffffff;
+        border-top: 2px solid transparent;
         border-radius: 50%;
-        background: #e9ecef;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin: 0 1rem;
-        font-weight: 600;
-        color: #6c757d;
-        position: relative;
+        animation: spin 1s linear infinite;
     }
     
-    .step-item.active {
-        background: #28a745;
-        color: white;
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
     }
     
-    .step-item.completed {
-        background: #17a2b8;
-        color: white;
+    .back-link {
+        color: #28a745;
+        text-decoration: none;
+        font-weight: 500;
+        transition: color 0.3s ease;
     }
     
-    .step-item::after {
-        content: '';
-        position: absolute;
-        top: 50%;
-        left: 100%;
-        width: 2rem;
-        height: 2px;
-        background: #e9ecef;
-        transform: translateY(-50%);
+    .back-link:hover {
+        color: #218838;
     }
     
-    .step-item:last-child::after {
-        display: none;
-    }
-    
-    .step-item.completed::after {
-        background: #17a2b8;
+    @media (max-width: 768px) {
+        .transaction-header {
+            padding: 20px;
+        }
+        
+        .transaction-header h3 {
+            font-size: 1.5rem;
+        }
+        
+        .transaction-icon {
+            width: 60px;
+            height: 60px;
+            font-size: 1.5rem;
+        }
     }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container-fluid">
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2 class="mb-1">Deposit Money</h2>
-            <p class="text-muted mb-0">Add money to your Equity Bank account</p>
-        </div>
-        <a href="{% url 'customer_dashboard' %}" class="btn btn-outline-secondary">
-            <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
-        </a>
-    </div>
-
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'transactions:customer_dashboard' %}" class="back-link">Dashboard</a></li>
+            <li class="breadcrumb-item active">Deposit Money</li>
+        </ol>
+    </nav>
+    
     <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <div class="deposit-card">
-                <!-- Header Section -->
-                <div class="deposit-header">
-                    <div class="deposit-icon">
-                        <i class="fas fa-plus-circle"></i>
+        <div class="col-xl-8 col-lg-10">
+            <div class="transaction-card">
+                <!-- Header -->
+                <div class="transaction-header">
+                    <div class="transaction-icon">
+                        <i class="fas fa-plus"></i>
                     </div>
-                    <h3 class="mb-2">Deposit to Account</h3>
-                    <p class="mb-0">{{ account.account_number }} - {{ account.account_type.name }}</p>
-                    <p class="small mb-0" style="opacity: 0.8;">Current Balance: KES {{ account.available_balance|floatformat:2|intcomma }}</p>
+                    <h3>Deposit Money</h3>
+                    <p class="mb-0 opacity-75">Add money to your account through our agent network</p>
                 </div>
-
-                <!-- Step Indicator -->
-                <div class="step-indicator mt-4">
-                    <div class="step-item active" data-step="1">1</div>
-                    <div class="step-item" data-step="2">2</div>
-                    <div class="step-item" data-step="3">3</div>
-                </div>
-
+                
+                <!-- Form Content -->
                 <div class="p-4">
-                    <!-- Step 1: Amount Entry -->
-                    <div class="step active" id="step1">
-                        <h5 class="mb-4 text-center">How much would you like to deposit?</h5>
-                        
-                        <div class="mb-4">
-                            <input type="number" 
-                                   class="form-control amount-input" 
-                                   id="depositAmount" 
-                                   placeholder="0.00" 
-                                   min="10" 
-                                   max="1000000"
-                                   step="0.01">
-                            <div class="text-center mt-2">
-                                <small class="text-muted">Enter amount in KES (Minimum: KES 10)</small>
+                    <!-- Account Information -->
+                    <div class="account-info">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 class="mb-2">Account Details</h6>
+                                <div><strong>Account Number:</strong> {{ account.account_number }}</div>
+                                <div><strong>Account Type:</strong> {{ account.account_type.name }}</div>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="mb-2">Current Balance</h6>
+                                <div class="h5 text-success mb-0">KES {{ account.available_balance|floatformat:2|intcomma }}</div>
                             </div>
                         </div>
-
-                        <!-- Quick Amount Buttons -->
+                    </div>
+                    
+                    <!-- Deposit Form -->
+                    <form id="depositForm">
+                        {% csrf_token %}
+                        
+                        <!-- Amount Input -->
                         <div class="row mb-4">
-                            <div class="col-12">
-                                <h6 class="mb-3">Quick Amounts</h6>
-                                <div class="row">
-                                    <div class="col-6 col-md-3 mb-2">
-                                        <button class="quick-amount w-100" data-amount="500">KES 500</button>
-                                    </div>
-                                    <div class="col-6 col-md-3 mb-2">
-                                        <button class="quick-amount w-100" data-amount="1000">KES 1,000</button>
-                                    </div>
-                                    <div class="col-6 col-md-3 mb-2">
-                                        <button class="quick-amount w-100" data-amount="2000">KES 2,000</button>
-                                    </div>
-                                    <div class="col-6 col-md-3 mb-2">
-                                        <button class="quick-amount w-100" data-amount="5000">KES 5,000</button>
-                                    </div>
+                            <div class="col-md-6">
+                                <label for="amount" class="form-label">Deposit Amount</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">KES</span>
+                                    <input type="number" 
+                                           class="form-control" 
+                                           id="amount" 
+                                           name="amount" 
+                                           placeholder="0.00" 
+                                           min="10" 
+                                           step="0.01" 
+                                           required>
                                 </div>
+                                <div class="form-text">Minimum deposit: KES 10.00</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="reference" class="form-label">Reference (Optional)</label>
+                                <input type="text" 
+                                       class="form-control" 
+                                       id="reference" 
+                                       name="reference" 
+                                       placeholder="Enter reference">
+                                <div class="form-text">For your own reference</div>
                             </div>
                         </div>
-
-                        <div class="text-center">
-                            <button class="btn btn-deposit" id="continueToAgent" disabled>
-                                Continue <i class="fas fa-arrow-right ms-2"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Step 2: Agent Selection -->
-                    <div class="step" id="step2">
-                        <h5 class="mb-4 text-center">Select Deposit Agent</h5>
                         
-                        <div class="row" id="agentsList">
-                            {% for agent in agents %}
-                            <div class="col-md-6 mb-3">
-                                <div class="agent-card" data-agent-id="{{ agent.id }}">
-                                    <div class="d-flex align-items-center">
-                                        <div class="me-3">
-                                            <div style="width: 50px; height: 50px; background: #f8f9fa; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                                                <i class="fas fa-store text-primary"></i>
+                        <!-- Agent Selection -->
+                        <div class="mb-4">
+                            <label class="form-label">Select Agent (Optional)</label>
+                            <div class="row" id="agentSelection">
+                                {% for agent in agents %}
+                                <div class="col-md-6 mb-3">
+                                    <div class="agent-card" data-agent-id="{{ agent.id }}">
+                                        <div class="d-flex align-items-center">
+                                            <div class="me-3">
+                                                <i class="fas fa-store fa-2x text-primary"></i>
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <h6 class="mb-1">{{ agent.business_name }}</h6>
+                                                <div class="small text-muted">{{ agent.business_address|truncatechars:30 }}</div>
+                                                <div class="small"><strong>Code:</strong> {{ agent.agent_code }}</div>
+                                            </div>
+                                            <div class="text-end">
+                                                <i class="fas fa-check-circle text-success d-none"></i>
                                             </div>
                                         </div>
-                                        <div class="flex-grow-1">
-                                            <h6 class="mb-1">{{ agent.business_name }}</h6>
-                                            <p class="text-muted small mb-1">{{ agent.business_address|truncatechars:40 }}</p>
-                                            <p class="text-muted small mb-0">
-                                                <i class="fas fa-phone me-1"></i>{{ agent.business_phone }}
-                                            </p>
-                                            <div class="small">
-                                                <span class="badge bg-success">Available</span>
-                                                <span class="text-muted">{{ agent.branch.name }}</span>
-                                            </div>
-                                        </div>
-                                        <div class="ms-2">
-                                            <i class="fas fa-check-circle" style="display: none; color: white; font-size: 1.2rem;"></i>
-                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            {% empty %}
-                            <div class="col-12">
-                                <div class="text-center text-muted py-5">
-                                    <i class="fas fa-store-slash fa-3x mb-3" style="opacity: 0.3;"></i>
-                                    <p>No agents available at the moment</p>
-                                    <p class="small">Please try again later or visit a branch</p>
+                                {% empty %}
+                                <div class="col-12">
+                                    <div class="alert alert-info">
+                                        No agents available at the moment. You can still proceed with the deposit.
+                                    </div>
                                 </div>
+                                {% endfor %}
                             </div>
-                            {% endfor %}
                         </div>
-
-                        <div class="text-center mt-4">
-                            <button class="btn btn-outline-secondary me-3" id="backToAmount">
-                                <i class="fas fa-arrow-left me-2"></i>Back
-                            </button>
-                            <button class="btn btn-deposit" id="continueToConfirm" disabled>
-                                Continue <i class="fas fa-arrow-right ms-2"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Step 3: Confirmation -->
-                    <div class="step" id="step3">
-                        <h5 class="mb-4 text-center">Confirm Deposit</h5>
                         
-                        <div class="summary-box">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <h6>Deposit Details</h6>
-                                    <div class="mb-2">
-                                        <strong>Amount:</strong>
-                                        <span class="float-end" id="confirmAmount">KES 0.00</span>
-                                    </div>
-                                    <div class="mb-2">
-                                        <strong>Fee:</strong>
-                                        <span class="float-end" id="confirmFee">KES 0.00</span>
-                                    </div>
-                                    <div class="mb-2">
-                                        <strong>Net Deposit:</strong>
-                                        <span class="float-end text-success fw-bold" id="confirmNetAmount">KES 0.00</span>
-                                    </div>
+                        <!-- Fee Information -->
+                        <div class="fee-info" id="feeInfo" style="display: none;">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>Transaction Fee:</strong>
+                                    <div class="small text-muted">Based on deposit amount</div>
                                 </div>
-                                <div class="col-md-6">
-                                    <h6>Agent Details</h6>
-                                    <div id="selectedAgentDetails">
-                                        <!-- Agent details will be populated here -->
-                                    </div>
+                                <div class="text-end">
+                                    <div class="h6 mb-0" id="feeAmount">KES 0.00</div>
                                 </div>
                             </div>
-                            
-                            <hr>
-                            
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <strong>Current Balance:</strong>
-                                    <span class="float-end">KES {{ account.available_balance|floatformat:2|intcomma }}</span>
-                                </div>
-                                <div class="col-md-6">
-                                    <strong>New Balance:</strong>
-                                    <span class="float-end text-success fw-bold" id="newBalance">KES 0.00</span>
-                                </div>
+                            <hr class="my-2">
+                            <div class="d-flex justify-content-between">
+                                <strong>Amount to be credited:</strong>
+                                <strong class="text-success" id="creditAmount">KES 0.00</strong>
                             </div>
                         </div>
-
-                        <div class="fee-display mt-4">
-                            <div class="d-flex align-items-center">
-                                <i class="fas fa-info-circle me-2"></i>
-                                <div class="flex-grow-1">
-                                    <strong>Transaction Fee Information</strong>
-                                    <p class="mb-0 small">A deposit fee will be deducted from your deposit amount as per our current tariff.</p>
-                                </div>
-                            </div>
-                        </div>
-
+                        
+                        <!-- Submit Button -->
                         <div class="text-center mt-4">
-                            <button class="btn btn-outline-secondary me-3" id="
+                            <button type="submit" class="btn btn-deposit btn-lg" id="submitBtn">
+                                <span id="submitText">Deposit Money</span>
+                                <div class="loading-spinner" id="loadingSpinner"></div>
+                            </button>
+                        </div>
+                        
+                        <!-- Terms -->
+                        <div class="text-center mt-3">
+                            <small class="text-muted">
+                                By proceeding, you agree to our <a href="#">Terms and Conditions</a>
+                            </small>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success Modal -->
+<div class="modal fade" id="successModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-check-circle me-2"></i>Deposit Successful
+                </h5>
+            </div>
+            <div class="modal-body text-center">
+                <div class="mb-3">
+                    <i class="fas fa-check-circle fa-4x text-success mb-3"></i>
+                    <h4>Deposit Completed!</h4>
+                    <p class="text-muted">Your money has been successfully deposited</p>
+                </div>
+                
+                <div class="bg-light rounded p-3 mb-3">
+                    <div class="row text-start">
+                        <div class="col-6"><strong>Amount:</strong></div>
+                        <div class="col-6" id="successAmount">-</div>
+                        <div class="col-6"><strong>Transaction ID:</strong></div>
+                        <div class="col-6" id="successTransactionId">-</div>
+                        <div class="col-6"><strong>New Balance:</strong></div>
+                        <div class="col-6 text-success" id="successNewBalance">-</div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="window.location.href='{% url 'transactions:customer_dashboard' %}'">
+                    Go to Dashboard
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Error Modal -->
+<div class="modal fade" id="errorModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Transaction Failed
+                </h5>
+            </div>
+            <div class="modal-body text-center">
+                <i class="fas fa-times-circle fa-4x text-danger mb-3"></i>
+                <h4>Unable to Process Deposit</h4>
+                <p class="text-muted" id="errorMessage">An error occurred while processing your deposit.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Try Again</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    let selectedAgentId = null;
+    
+    // Agent Selection
+    $('.agent-card').click(function() {
+        $('.agent-card').removeClass('selected');
+        $('.agent-card .fa-check-circle').addClass('d-none');
+        
+        $(this).addClass('selected');
+        $(this).find('.fa-check-circle').removeClass('d-none');
+        
+        selectedAgentId = $(this).data('agent-id');
+    });
+    
+    // Amount Change Handler
+    $('#amount').on('input', function() {
+        const amount = parseFloat($(this).val()) || 0;
+        if (amount > 0) {
+            calculateFees(amount);
+        } else {
+            $('#feeInfo').hide();
+        }
+    });
+    
+    // Calculate Fees
+    function calculateFees(amount) {
+        // You can implement actual fee calculation logic here
+        // For now, using a simple flat fee
+        const fee = amount * 0.01; // 1% fee example
+        const creditAmount = amount - fee;
+        
+        $('#feeAmount').text('KES ' + fee.toFixed(2));
+        $('#creditAmount').text('KES ' + creditAmount.toFixed(2));
+        $('#feeInfo').show();
+    }
+    
+    // Form Submission
+    $('#depositForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        const amount = parseFloat($('#amount').val());
+        const reference = $('#reference').val();
+        
+        // Validation
+        if (!amount || amount < 10) {
+            showError('Please enter a valid amount (minimum KES 10.00)');
+            return;
+        }
+        
+        // Show loading state
+        setLoadingState(true);
+        
+        // Prepare data
+        const formData = {
+            amount: amount,
+            agent_id: selectedAgentId,
+            reference: reference,
+            csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val()
+        };
+        
+        // Make AJAX request
+        $.ajax({
+            url: '{% url "transactions:api_deposit" %}',
+            method: 'POST',
+            data: JSON.stringify(formData),
+            contentType: 'application/json',
+            headers: {
+                'X-CSRFToken': $('input[name=csrfmiddlewaretoken]').val()
+            },
+            success: function(response) {
+                setLoadingState(false);
+                
+                if (response.success) {
+                    showSuccess(response);
+                } else {
+                    showError(response.error || 'Transaction failed');
+                }
+            },
+            error: function(xhr, status, error) {
+                setLoadingState(false);
+                let errorMessage = 'Network error occurred. Please try again.';
+                
+                if (xhr.responseJSON && xhr.responseJSON.error) {
+                    errorMessage = xhr.responseJSON.error;
+                }
+                
+                showError(errorMessage);
+            }
+        });
+    });
+    
+    // Set Loading State
+    function setLoadingState(loading) {
+        const submitBtn = $('#submitBtn');
+        const submitText = $('#submitText');
+        const loadingSpinner = $('#loadingSpinner');
+        
+        if (loading) {
+            submitBtn.prop('disabled', true);
+            submitText.text('Processing...');
+            loadingSpinner.show();
+        } else {
+            submitBtn.prop('disabled', false);
+            submitText.text('Deposit Money');
+            loadingSpinner.hide();
+        }
+    }
+    
+    // Show Success
+    function showSuccess(response) {
+        $('#successAmount').text('KES ' + parseFloat(response.amount || 0).toFixed(2));
+        $('#successTransactionId').text(response.transaction_id || '-');
+        $('#successNewBalance').text('KES ' + parseFloat(response.new_balance || 0).toFixed(2));
+        
+        $('#successModal').modal('show');
+        
+        // Reset form
+        $('#depositForm')[0].reset();
+        $('.agent-card').removeClass('selected');
+        $('.agent-card .fa-check-circle').addClass('d-none');
+        $('#feeInfo').hide();
+        selectedAgentId = null;
+    }
+    
+    // Show Error
+    function showError(message) {
+        $('#errorMessage').text(message);
+        $('#errorModal').modal('show');
+    }
+    
+    // Format currency input
+    $('#amount').on('blur', function() {
+        const value = parseFloat($(this).val());
+        if (value) {
+            $(this).val(value.toFixed(2));
+        }
+    });
+    
+    // Prevent negative numbers
+    $('#amount').on('input', function() {
+        if ($(this).val() < 0) {
+            $(this).val(0);
+        }
+    });
+});
+</script>
+{% endblock %}
