@@ -88,6 +88,18 @@ DATABASES = {
     }
 }
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'your_db_name',       # Replace with your database name
+#         'USER': 'your_db_user',       # Replace with your PostgreSQL username
+#         'PASSWORD': 'your_db_password',  # Replace with your PostgreSQL password
+#         'HOST': 'localhost',          # Or your database server IP/domain
+#         'PORT': '5432',               # Default PostgreSQL port
+#     }
+# }
+
+
 AUTH_USER_MODEL = 'banking_system.User'
 
 
