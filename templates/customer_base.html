@@ -356,7 +356,7 @@
                     <span class="d-none d-md-inline">Customer</span>
                 </a>
                 <ul class="dropdown-menu dropdown-menu-end">
-                    <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i>My Profile</a></li>
+                    <li><a class="dropdown-item" href="{% url 'customer_profile'%}"><i class="fas fa-user me-2"></i>My Profile</a></li>
                     <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Settings</a></li>
                     <li><a class="dropdown-item" href="#"><i class="fas fa-shield-alt me-2"></i>Security</a></li>
                     <li><hr class="dropdown-divider"></li>
@@ -381,11 +381,11 @@
                 <i class="fas fa-home"></i>
                 <span>Dashboard</span>
             </a>
-            <a href="#" class="menu-item">
+            <a href="{% url 'financial_summary'%}" class="menu-item">
                 <i class="fas fa-chart-line"></i>
                 <span>Financial Summary</span>
             </a>
-            <a href="#" class="menu-item">
+            <a href="{% url 'notifications'%}" class="menu-item">
                 <i class="fas fa-bell"></i>
                 <span>Notifications</span>
                 <span class="badge bg-danger">3</span>
@@ -410,7 +410,7 @@
                 <i class="fas fa-credit-card"></i>
                 <span>ATM Cards</span>
             </a>
-            <a href="#" class="menu-item">
+            <a href="{% url 'account_statements'%}" class="menu-item">
                 <i class="fas fa-file-invoice"></i>
                 <span>Account Statements</span>
             </a>
@@ -439,7 +439,7 @@
                 <i class="fas fa-mobile-alt"></i>
                 <span>Airtime Purchase</span>
             </a>
-            <a href="#" class="menu-item">
+            <a href="{% url 'transaction_history'%}" class="menu-item">
                 <i class="fas fa-history"></i>
                 <span>Transaction History</span>
             </a>
@@ -481,7 +481,7 @@
                 <i class="fas fa-shield-alt"></i>
                 <span>Security Settings</span>
             </a>
-            <a href="#" class="menu-item">
+            <a href="{% url 'change_password'%}" class="menu-item">
                 <i class="fas fa-lock"></i>
                 <span>Change Password/PIN</span>
             </a>
@@ -512,7 +512,7 @@
         <!-- Settings Section -->
         <div class="menu-section">
             <div class="menu-section-title">SETTINGS</div>
-            <a href="#" class="menu-item">
+            <a href="{% url 'profile_settings'%}" class="menu-item">
                 <i class="fas fa-user-cog"></i>
                 <span>Profile Settings</span>
             </a>

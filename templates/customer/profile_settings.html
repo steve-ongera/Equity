@@ -1,0 +1,241 @@
+{% extends 'customer_base.html' %}
+{% load static %}
+
+{% block title %}Profile Settings{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h4 class="mb-0"><i class="fas fa-cog"></i> Profile Settings</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <!-- Transaction Limits -->
+                        <div class="col-md-6">
+                            <div class="card mb-4">
+                                <div class="card-header bg-light">
+                                    <h5 class="mb-0"><i class="fas fa-money-bill-wave"></i> Transaction Limits</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row mb-3">
+                                        <div class="col-6">
+                                            <strong>Daily Transfer Limit:</strong>
+                                        </div>
+                                        <div class="col-6">
+                                            <span class="text-primary">KES {{ transaction_limits.daily_transfer_limit|floatformat:2 }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-6">
+                                            <strong>Daily Withdrawal Limit:</strong>
+                                        </div>
+                                        <div class="col-6">
+                                            <span class="text-primary">KES {{ transaction_limits.daily_withdrawal_limit|floatformat:2 }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-6">
+                                            <strong>Monthly Transfer Limit:</strong>
+                                        </div>
+                                        <div class="col-6">
+                                            <span class="text-primary">KES {{ transaction_limits.monthly_transfer_limit|floatformat:2 }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-6">
+                                            <strong>Single Transaction Limit:</strong>
+                                        </div>
+                                        <div class="col-6">
+                                            <span class="text-primary">KES {{ transaction_limits.single_transaction_limit|floatformat:2 }}</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <h6 class="mt-4">Current Usage</h6>
+                                    <div class="progress mb-2">
+                                        <div class="progress-bar" role="progressbar" 
+                                             style="width: {{ transaction_limits.current_daily_transfers|div:transaction_limits.daily_transfer_limit|mul:100 }}%">
+                                            Daily Transfers: {{ transaction_limits.current_daily_transfers|div:transaction_limits.daily_transfer_limit|mul:100|floatformat:0 }}%
+                                        </div>
+                                    </div>
+                                    <div class="progress mb-2">
+                                        <div class="progress-bar bg-warning" role="progressbar" 
+                                             style="width: {{ transaction_limits.current_daily_withdrawals|div:transaction_limits.daily_withdrawal_limit|mul:100 }}%">
+                                            Daily Withdrawals: {{ transaction_limits.current_daily_withdrawals|div:transaction_limits.daily_withdrawal_limit|mul:100|floatformat:0 }}%
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ATM Cards -->
+                        <div class="col-md-6">
+                            <div class="card mb-4">
+                                <div class="card-header bg-light">
+                                    <h5 class="mb-0"><i class="fas fa-credit-card"></i> ATM Cards</h5>
+                                </div>
+                                <div class="card-body">
+                                    {% for card in atm_cards %}
+                                        <div class="border-bottom pb-3 mb-3">
+                                            <div class="row">
+                                                <div class="col-8">
+                                                    <strong>**** **** **** {{ card.card_number|slice:"-4:" }}</strong><br>
+                                                    <small class="text-muted">{{ card.cardholder_name }}</small><br>
+                                                    <small class="text-muted">Expires: {{ card.expiry_date|date:"m/y" }}</small>
+                                                </div>
+                                                <div class="col-4 text-end">
+                                                    {% if card.status == 'active' %}
+                                                        <span class="badge bg-success">Active</span>
+                                                    {% elif card.status == 'blocked' %}
+                                                        <span class="badge bg-danger">Blocked</span>
+                                                    {% else %}
+                                                        <span class="badge bg-secondary">{{ card.get_status_display }}</span>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                            <div class="mt-2">
+                                                <small class="text-muted">Daily Limits:</small><br>
+                                                <small>Withdrawal: KES {{ card.daily_withdrawal_limit|floatformat:2 }}</small><br>
+                                                <small>Purchase: KES {{ card.daily_purchase_limit|floatformat:2 }}</small>
+                                            </div>
+                                        </div>
+                                    {% empty %}
+                                        <div class="text-center text-muted">
+                                            <i class="fas fa-credit-card fa-2x mb-2"></i><br>
+                                            No ATM cards found
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <!-- Security Settings -->
+                        <div class="col-md-6">
+                            <div class="card mb-4">
+                                <div class="card-header bg-light">
+                                    <h5 class="mb-0"><i class="fas fa-shield-alt"></i> Security Settings</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-grid gap-2">
+                                        <a href="{% url 'change_password' %}" class="btn btn-outline-warning">
+                                            <i class="fas fa-key"></i> Change Password
+                                        </a>
+                                        <button type="button" class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#changePinModal">
+                                            <i class="fas fa-lock"></i> Change Transaction PIN
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary" disabled>
+                                            <i class="fas fa-mobile-alt"></i> Two-Factor Authentication
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Registered Devices -->
+                        <div class="col-md-6">
+                            <div class="card mb-4">
+                                <div class="card-header bg-light">
+                                    <h5 class="mb-0"><i class="fas fa-mobile-alt"></i> Registered Devices</h5>
+                                </div>
+                                <div class="card-body">
+                                    {% for device in devices %}
+                                        <div class="border-bottom pb-2 mb-3">
+                                            <div class="row">
+                                                <div class="col-8">
+                                                    <strong>{{ device.device_name }}</strong><br>
+                                                    <small class="text-muted">{{ device.device_type }} - {{ device.device_model }}</small><br>
+                                                    <small class="text-muted">Last used: {{ device.last_used|date:"M d, Y H:i" }}</small>
+                                                </div>
+                                                <div class="col-4 text-end">
+                                                    {% if device.is_trusted %}
+                                                        <span class="badge bg-success mb-1">Trusted</span><br>
+                                                    {% endif %}
+                                                    {% if device.is_active %}
+                                                        <span class="badge bg-info">Active</span>
+                                                    {% else %}
+                                                        <span class="badge bg-secondary">Inactive</span>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% empty %}
+                                        <div class="text-center text-muted">
+                                            <i class="fas fa-mobile-alt fa-2x mb-2"></i><br>
+                                            No devices registered
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header bg-light">
+                                    <h5 class="mb-0"><i class="fas fa-bolt"></i> Quick Actions</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row text-center">
+                                        <div class="col-md-3">
+                                            <a href="{% url 'account_statements' %}" class="btn btn-outline-primary btn-lg w-100">
+                                                <i class="fas fa-file-alt fa-2x d-block mb-2"></i>
+                                                Account Statements
+                                            </a>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <a href="{% url 'notifications' %}" class="btn btn-outline-info btn-lg w-100">
+                                                <i class="fas fa-bell fa-2x d-block mb-2"></i>
+                                                Notifications
+                                            </a>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <button type="button" class="btn btn-outline-success btn-lg w-100" disabled>
+                                                <i class="fas fa-headset fa-2x d-block mb-2"></i>
+                                                Support
+                                            </button>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <button type="button" class="btn btn-outline-warning btn-lg w-100" disabled>
+                                                <i class="fas fa-download fa-2x d-block mb-2"></i>
+                                                Mobile App
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Change PIN Modal -->
+<div class="modal fade" id="changePinModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-lock"></i> Change Transaction PIN</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    This feature requires additional security verification and will be available soon.
+                </div>
+                <p>To change your transaction PIN, please visit any of our branches with a valid ID.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
