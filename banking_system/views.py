@@ -1008,3 +1008,338 @@ Equity Bank Kenya
             
     except Exception as e:
         print(f"Error sending notification: {e}")
+
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth import update_session_auth_hash
+from django.contrib import messages
+from django.http import JsonResponse, HttpResponse
+from django.core.paginator import Paginator
+from django.db.models import Sum, Q
+from django.utils import timezone
+from django.contrib.auth.forms import PasswordChangeForm
+from django.forms import ModelForm
+from django import forms
+from datetime import datetime, timedelta
+from decimal import Decimal
+import json
+
+from .models import (
+    User, BankAccount, Transaction, Notification, AccountStatement,
+    UserTransactionLimit, ATMCard, Loan, BillPayment, InterestCalculation
+)
+
+# Customer Profile Form
+class CustomerProfileForm(ModelForm):
+    class Meta:
+        model = User
+        fields = [
+            'first_name', 'last_name', 'email', 'phone_number', 
+            'address', 'city', 'postal_code', 'occupation', 
+            'employer', 'monthly_income'
+        ]
+        widgets = {
+            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'phone_number': forms.TextInput(attrs={'class': 'form-control'}),
+            'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'city': forms.TextInput(attrs={'class': 'form-control'}),
+            'postal_code': forms.TextInput(attrs={'class': 'form-control'}),
+            'occupation': forms.TextInput(attrs={'class': 'form-control'}),
+            'employer': forms.TextInput(attrs={'class': 'form-control'}),
+            'monthly_income': forms.NumberInput(attrs={'class': 'form-control'}),
+        }
+
+@login_required
+def customer_profile(request):
+    """Customer profile view with edit functionality"""
+    user = request.user
+    
+    if request.method == 'POST':
+        form = CustomerProfileForm(request.POST, instance=user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Profile updated successfully!')
+            return redirect('customer_profile')
+    else:
+        form = CustomerProfileForm(instance=user)
+    
+    # Get user's accounts and basic stats
+    accounts = BankAccount.objects.filter(customer=user)
+    total_balance = accounts.aggregate(Sum('balance'))['balance__sum'] or Decimal('0.00')
+    
+    context = {
+        'form': form,
+        'user': user,
+        'accounts': accounts,
+        'total_balance': total_balance,
+    }
+    return render(request, 'customer/profile.html', context)
+
+@login_required
+def transaction_history(request):
+    """Transaction history with filtering and pagination"""
+    user_accounts = BankAccount.objects.filter(customer=request.user)
+    
+    # Get filter parameters
+    account_filter = request.GET.get('account', '')
+    transaction_type = request.GET.get('type', '')
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    
+    # Build query
+    transactions = Transaction.objects.filter(account__in=user_accounts)
+    
+    if account_filter:
+        transactions = transactions.filter(account__account_number=account_filter)
+    
+    if transaction_type:
+        transactions = transactions.filter(transaction_type=transaction_type)
+    
+    if date_from:
+        transactions = transactions.filter(created_at__date__gte=date_from)
+    
+    if date_to:
+        transactions = transactions.filter(created_at__date__lte=date_to)
+    
+    transactions = transactions.order_by('-created_at')
+    
+    # Pagination
+    paginator = Paginator(transactions, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'page_obj': page_obj,
+        'accounts': user_accounts,
+        'transaction_types': Transaction.TRANSACTION_TYPES,
+        'filters': {
+            'account': account_filter,
+            'type': transaction_type,
+            'date_from': date_from,
+            'date_to': date_to,
+        }
+    }
+    return render(request, 'customer/transaction_history.html', context)
+
+@login_required
+def change_password(request):
+    """Change password view"""
+    if request.method == 'POST':
+        form = PasswordChangeForm(request.user, request.POST)
+        if form.is_valid():
+            user = form.save()
+            update_session_auth_hash(request, user)
+            messages.success(request, 'Your password was successfully updated!')
+            return redirect('change_password')
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        form = PasswordChangeForm(request.user)
+    
+    return render(request, 'customer/change_password.html', {'form': form})
+
+@login_required
+def profile_settings(request):
+    """Profile settings and preferences"""
+    try:
+        transaction_limits = UserTransactionLimit.objects.get(user=request.user)
+    except UserTransactionLimit.DoesNotExist:
+        transaction_limits = UserTransactionLimit.objects.create(user=request.user)
+    
+    # Get user's ATM cards
+    atm_cards = ATMCard.objects.filter(account__customer=request.user)
+    
+    # Get registered devices (if implemented)
+    from .models import DeviceRegistration
+    devices = DeviceRegistration.objects.filter(user=request.user)
+    
+    context = {
+        'transaction_limits': transaction_limits,
+        'atm_cards': atm_cards,
+        'devices': devices,
+    }
+    return render(request, 'customer/profile_settings.html', context)
+
+@login_required
+def financial_summary(request):
+    """Financial summary dashboard"""
+    user_accounts = BankAccount.objects.filter(customer=request.user)
+    
+    # Account summaries
+    total_balance = user_accounts.aggregate(Sum('balance'))['balance__sum'] or Decimal('0.00')
+    
+    # Recent transactions (last 30 days)
+    thirty_days_ago = timezone.now() - timedelta(days=30)
+    recent_transactions = Transaction.objects.filter(
+        account__in=user_accounts,
+        created_at__gte=thirty_days_ago
+    )
+    
+    # Transaction summaries
+    total_credits = recent_transactions.filter(
+        transaction_type__in=['deposit', 'transfer', 'interest_credit', 'loan_disbursement']
+    ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
+    
+    total_debits = recent_transactions.filter(
+        transaction_type__in=['withdrawal', 'bill_payment', 'airtime_purchase', 'fee_charge']
+    ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
+    
+    # Active loans
+    active_loans = Loan.objects.filter(borrower=request.user, status='active')
+    total_loan_balance = active_loans.aggregate(
+        Sum('outstanding_principal')
+    )['outstanding_principal__sum'] or Decimal('0.00')
+    
+    # Monthly spending by category (last 6 months)
+    six_months_ago = timezone.now() - timedelta(days=180)
+    monthly_spending = []
+    
+    for i in range(6):
+        month_start = timezone.now().replace(day=1) - timedelta(days=30*i)
+        month_end = (month_start + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+        
+        month_total = Transaction.objects.filter(
+            account__in=user_accounts,
+            transaction_type__in=['withdrawal', 'bill_payment', 'airtime_purchase'],
+            created_at__gte=month_start,
+            created_at__lte=month_end
+        ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
+        
+        monthly_spending.append({
+            'month': month_start.strftime('%b %Y'),
+            'amount': float(month_total)
+        })
+    
+    monthly_spending.reverse()
+    
+    context = {
+        'accounts': user_accounts,
+        'total_balance': total_balance,
+        'total_credits': total_credits,
+        'total_debits': total_debits,
+        'active_loans': active_loans,
+        'total_loan_balance': total_loan_balance,
+        'recent_transactions': recent_transactions[:10],
+        'monthly_spending_data': json.dumps(monthly_spending),
+    }
+    return render(request, 'customer/financial_summary.html', context)
+
+@login_required
+def notifications(request):
+    """Customer notifications"""
+    if request.method == 'POST' and 'mark_read' in request.POST:
+        notification_id = request.POST.get('notification_id')
+        if notification_id:
+            try:
+                notification = Notification.objects.get(id=notification_id, user=request.user)
+                notification.is_read = True
+                notification.read_at = timezone.now()
+                notification.save()
+                return JsonResponse({'status': 'success'})
+            except Notification.DoesNotExist:
+                return JsonResponse({'status': 'error'})
+    
+    # Get notifications with pagination
+    notifications_list = Notification.objects.filter(user=request.user).order_by('-created_at')
+    
+    # Mark all as read if requested
+    if request.GET.get('mark_all_read'):
+        notifications_list.update(is_read=True, read_at=timezone.now())
+        messages.success(request, 'All notifications marked as read.')
+        return redirect('notifications')
+    
+    paginator = Paginator(notifications_list, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    # Count unread notifications
+    unread_count = notifications_list.filter(is_read=False).count()
+    
+    context = {
+        'page_obj': page_obj,
+        'unread_count': unread_count,
+    }
+    return render(request, 'customer/notifications.html', context)
+
+@login_required
+def account_statements(request):
+    """Account statements list and generation"""
+    user_accounts = BankAccount.objects.filter(customer=request.user)
+    
+    if request.method == 'POST':
+        account_id = request.POST.get('account_id')
+        from_date = request.POST.get('from_date')
+        to_date = request.POST.get('to_date')
+        
+        if account_id and from_date and to_date:
+            try:
+                account = BankAccount.objects.get(id=account_id, customer=request.user)
+                from_date = datetime.strptime(from_date, '%Y-%m-%d').date()
+                to_date = datetime.strptime(to_date, '%Y-%m-%d').date()
+                
+                # Check if statement already exists
+                existing_statement = AccountStatement.objects.filter(
+                    account=account,
+                    from_date=from_date,
+                    to_date=to_date
+                ).first()
+                
+                if existing_statement:
+                    messages.info(request, 'Statement already exists for this period.')
+                else:
+                    # Create new statement record (actual PDF generation would be handled separately)
+                    statement = AccountStatement.objects.create(
+                        account=account,
+                        statement_date=timezone.now().date(),
+                        from_date=from_date,
+                        to_date=to_date,
+                        opening_balance=Decimal('0.00'),  # Calculate actual opening balance
+                        closing_balance=account.balance,
+                        is_generated=False
+                    )
+                    messages.success(request, 'Statement request submitted successfully!')
+                
+                return redirect('account_statements')
+                
+            except (ValueError, BankAccount.DoesNotExist):
+                messages.error(request, 'Invalid data provided.')
+    
+    # Get existing statements
+    statements = AccountStatement.objects.filter(
+        account__in=user_accounts
+    ).order_by('-created_at')
+    
+    paginator = Paginator(statements, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'accounts': user_accounts,
+        'page_obj': page_obj,
+    }
+    return render(request, 'customer/account_statements.html', context)
+
+@login_required
+def download_statement(request, statement_id):
+    """Download account statement (placeholder for actual PDF generation)"""
+    try:
+        statement = AccountStatement.objects.get(
+            id=statement_id,
+            account__customer=request.user
+        )
+        
+        if statement.statement_file:
+            # Return the actual file
+            response = HttpResponse(statement.statement_file.read(), content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="statement_{statement.account.account_number}_{statement.from_date}_{statement.to_date}.pdf"'
+            return response
+        else:
+            messages.error(request, 'Statement file not yet generated.')
+            return redirect('account_statements')
+            
+    except AccountStatement.DoesNotExist:
+        messages.error(request, 'Statement not found.')
+        return redirect('account_statements')
