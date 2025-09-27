@@ -56,14 +56,18 @@
                                     <h6 class="mt-4">Current Usage</h6>
                                     <div class="progress mb-2">
                                         <div class="progress-bar" role="progressbar" 
-                                             style="width: {{ transaction_limits.current_daily_transfers|div:transaction_limits.daily_transfer_limit|mul:100 }}%">
-                                            Daily Transfers: {{ transaction_limits.current_daily_transfers|div:transaction_limits.daily_transfer_limit|mul:100|floatformat:0 }}%
+                                             style="width: {{ daily_transfer_percentage }}%"
+                                             aria-valuenow="{{ daily_transfer_percentage }}" 
+                                             aria-valuemin="0" aria-valuemax="100">
+                                            Daily Transfers: {{ daily_transfer_percentage }}%
                                         </div>
                                     </div>
                                     <div class="progress mb-2">
                                         <div class="progress-bar bg-warning" role="progressbar" 
-                                             style="width: {{ transaction_limits.current_daily_withdrawals|div:transaction_limits.daily_withdrawal_limit|mul:100 }}%">
-                                            Daily Withdrawals: {{ transaction_limits.current_daily_withdrawals|div:transaction_limits.daily_withdrawal_limit|mul:100|floatformat:0 }}%
+                                             style="width: {{ daily_withdrawal_percentage }}%"
+                                             aria-valuenow="{{ daily_withdrawal_percentage }}" 
+                                             aria-valuemin="0" aria-valuemax="100">
+                                            Daily Withdrawals: {{ daily_withdrawal_percentage }}%
                                         </div>
                                     </div>
                                 </div>

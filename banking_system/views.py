@@ -1149,6 +1149,16 @@ def profile_settings(request):
     except UserTransactionLimit.DoesNotExist:
         transaction_limits = UserTransactionLimit.objects.create(user=request.user)
     
+    # Calculate usage percentages
+    daily_transfer_percentage = 0
+    daily_withdrawal_percentage = 0
+    
+    if transaction_limits.daily_transfer_limit > 0:
+        daily_transfer_percentage = (transaction_limits.current_daily_transfers / transaction_limits.daily_transfer_limit) * 100
+    
+    if transaction_limits.daily_withdrawal_limit > 0:
+        daily_withdrawal_percentage = (transaction_limits.current_daily_withdrawals / transaction_limits.daily_withdrawal_limit) * 100
+    
     # Get user's ATM cards
     atm_cards = ATMCard.objects.filter(account__customer=request.user)
     
@@ -1158,10 +1168,13 @@ def profile_settings(request):
     
     context = {
         'transaction_limits': transaction_limits,
+        'daily_transfer_percentage': round(daily_transfer_percentage, 1),
+        'daily_withdrawal_percentage': round(daily_withdrawal_percentage, 1),
         'atm_cards': atm_cards,
         'devices': devices,
     }
     return render(request, 'customer/profile_settings.html', context)
+
 
 @login_required
 def financial_summary(request):
