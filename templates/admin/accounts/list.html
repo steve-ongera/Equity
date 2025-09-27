@@ -47,7 +47,7 @@
                     <button type="submit" class="btn btn-primary me-2">
                         <i class="fas fa-search"></i> Search
                     </button>
-                    <a href="{% url 'admin:account_list' %}" class="btn btn-secondary">
+                    <a href="{% url 'account_list' %}" class="btn btn-secondary">
                         <i class="fas fa-times"></i> Clear
                     </a>
                 </div>
@@ -280,7 +280,7 @@ function viewAccount(accountNumber) {
 
 function viewTransactions(accountNumber) {
     // Navigate to transactions page with account filter
-    window.location.href = '{% url "admin:transaction_list" %}?account=' + accountNumber;
+    window.location.href = '{% url "transaction_list" %}?account=' + accountNumber;
 }
 
 function freezeAccount(accountNumber) {
