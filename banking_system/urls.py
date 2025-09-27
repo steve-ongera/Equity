@@ -31,6 +31,17 @@ urlpatterns = [
     path('api/withdrawal/', views.api_withdrawal, name='api_withdrawal'),
     path('api/transfer/', views.api_transfer, name='api_transfer'),
     path('api/verify-account/', views.api_verify_account, name='api_verify_account'),
+
+
+    # Customer Profile URLs
+    path('profile/', views.customer_profile, name='customer_profile'),
+    path('transaction-history/', views.transaction_history, name='transaction_history'),
+    path('change-password/', views.change_password, name='change_password'),
+    path('profile-settings/', views.profile_settings, name='profile_settings'),
+    path('financial-summary/', views.financial_summary, name='financial_summary'),
+    path('notifications/', views.notifications, name='notifications'),
+    path('account-statements/', views.account_statements, name='account_statements'),
+    path('download-statement/<int:statement_id>/', views.download_statement, name='download_statement'),
     
   
 ]
