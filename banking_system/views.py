@@ -1356,3 +1356,382 @@ def download_statement(request, statement_id):
     except AccountStatement.DoesNotExist:
         messages.error(request, 'Statement not found.')
         return redirect('account_statements')
+
+
+
+# admin_views.py
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib import messages
+from django.core.paginator import Paginator
+from django.db.models import Q, Sum, Count
+from django.http import JsonResponse
+from django.utils import timezone
+from datetime import datetime, timedelta
+from .models import *
+
+def is_admin(user):
+    return user.is_authenticated and user.user_type == 'admin'
+
+
+
+# Analytics
+@login_required
+@user_passes_test(is_admin)
+def analytics(request):
+    # Transaction analytics
+    today = timezone.now().date()
+    last_30_days = today - timedelta(days=30)
+    
+    daily_transactions = Transaction.objects.filter(
+        created_at__date__gte=last_30_days
+    ).extra(
+        select={'day': 'date(created_at)'}
+    ).values('day').annotate(
+        count=Count('id'),
+        total_amount=Sum('amount')
+    ).order_by('day')
+    
+    transaction_by_type = Transaction.objects.values('transaction_type').annotate(
+        count=Count('id'),
+        total_amount=Sum('amount')
+    )
+    
+    context = {
+        'daily_transactions': list(daily_transactions),
+        'transaction_by_type': list(transaction_by_type),
+    }
+    return render(request, 'admin/analytics.html', context)
+
+# User Management Views
+@login_required
+@user_passes_test(is_admin)
+def user_list(request):
+    user_type = request.GET.get('type', 'all')
+    search = request.GET.get('search', '')
+    
+    users = User.objects.all()
+    
+    if user_type != 'all':
+        users = users.filter(user_type=user_type)
+    
+    if search:
+        users = users.filter(
+            Q(username__icontains=search) |
+            Q(first_name__icontains=search) |
+            Q(last_name__icontains=search) |
+            Q(email__icontains=search) |
+            Q(phone_number__icontains=search)
+        )
+    
+    paginator = Paginator(users, 25)
+    page = request.GET.get('page')
+    users = paginator.get_page(page)
+    
+    context = {
+        'users': users,
+        'user_type': user_type,
+        'search': search,
+    }
+    return render(request, 'admin/users/list.html', context)
+
+@login_required
+@user_passes_test(is_admin)
+def user_detail(request, user_id):
+    user = get_object_or_404(User, id=user_id)
+    accounts = BankAccount.objects.filter(customer=user)
+    recent_transactions = Transaction.objects.filter(account__customer=user).order_by('-created_at')[:10]
+    
+    context = {
+        'user': user,
+        'accounts': accounts,
+        'recent_transactions': recent_transactions,
+    }
+    return render(request, 'admin/users/detail.html', context)
+
+# KYC Management
+@login_required
+@user_passes_test(is_admin)
+def kyc_management(request):
+    status_filter = request.GET.get('status', 'all')
+    search = request.GET.get('search', '')
+    
+    kyc_documents = KYCDocument.objects.select_related('user').all()
+    
+    if status_filter != 'all':
+        kyc_documents = kyc_documents.filter(status=status_filter)
+    
+    if search:
+        kyc_documents = kyc_documents.filter(
+            Q(user__username__icontains=search) |
+            Q(document_number__icontains=search)
+        )
+    
+    paginator = Paginator(kyc_documents, 25)
+    page = request.GET.get('page')
+    kyc_documents = paginator.get_page(page)
+    
+    context = {
+        'kyc_documents': kyc_documents,
+        'status_filter': status_filter,
+        'search': search,
+    }
+    return render(request, 'admin/kyc/list.html', context)
+
+# Account Management
+@login_required
+@user_passes_test(is_admin)
+def account_list(request):
+    account_type = request.GET.get('type', 'all')
+    status = request.GET.get('status', 'all')
+    search = request.GET.get('search', '')
+    
+    accounts = BankAccount.objects.select_related('customer', 'account_type', 'branch').all()
+    
+    if account_type != 'all':
+        accounts = accounts.filter(account_type__code=account_type)
+    
+    if status != 'all':
+        accounts = accounts.filter(status=status)
+    
+    if search:
+        accounts = accounts.filter(
+            Q(account_number__icontains=search) |
+            Q(customer__username__icontains=search)
+        )
+    
+    paginator = Paginator(accounts, 25)
+    page = request.GET.get('page')
+    accounts = paginator.get_page(page)
+    
+    context = {
+        'accounts': accounts,
+        'account_type': account_type,
+        'status': status,
+        'search': search,
+    }
+    return render(request, 'admin/accounts/list.html', context)
+
+# Transaction Management
+@login_required
+@user_passes_test(is_admin)
+def transaction_list(request):
+    transaction_type = request.GET.get('type', 'all')
+    status = request.GET.get('status', 'all')
+    channel = request.GET.get('channel', 'all')
+    search = request.GET.get('search', '')
+    
+    transactions = Transaction.objects.select_related('account', 'account__customer').all()
+    
+    if transaction_type != 'all':
+        transactions = transactions.filter(transaction_type=transaction_type)
+    
+    if status != 'all':
+        transactions = transactions.filter(status=status)
+    
+    if channel != 'all':
+        transactions = transactions.filter(channel=channel)
+    
+    if search:
+        transactions = transactions.filter(
+            Q(transaction_id__icontains=search) |
+            Q(reference_number__icontains=search) |
+            Q(account__account_number__icontains=search)
+        )
+    
+    paginator = Paginator(transactions, 25)
+    page = request.GET.get('page')
+    transactions = paginator.get_page(page)
+    
+    context = {
+        'transactions': transactions,
+        'transaction_type': transaction_type,
+        'status': status,
+        'channel': channel,
+        'search': search,
+    }
+    return render(request, 'admin/transactions/list.html', context)
+
+# Loan Management
+@login_required
+@user_passes_test(is_admin)
+def loan_applications(request):
+    status = request.GET.get('status', 'all')
+    search = request.GET.get('search', '')
+    
+    applications = LoanApplication.objects.select_related('applicant', 'loan_type').all()
+    
+    if status != 'all':
+        applications = applications.filter(status=status)
+    
+    if search:
+        applications = applications.filter(
+            Q(application_id__icontains=search) |
+            Q(applicant__username__icontains=search)
+        )
+    
+    paginator = Paginator(applications, 25)
+    page = request.GET.get('page')
+    applications = paginator.get_page(page)
+    
+    context = {
+        'applications': applications,
+        'status': status,
+        'search': search,
+    }
+    return render(request, 'admin/loans/applications.html', context)
+
+@login_required
+@user_passes_test(is_admin)
+def active_loans(request):
+    loans = Loan.objects.select_related('borrower', 'loan_type').filter(status='active')
+    
+    paginator = Paginator(loans, 25)
+    page = request.GET.get('page')
+    loans = paginator.get_page(page)
+    
+    context = {'loans': loans}
+    return render(request, 'admin/loans/active.html', context)
+
+# Branch Management
+@login_required
+@user_passes_test(is_admin)
+def branch_list(request):
+    branches = Branch.objects.all()
+    
+    paginator = Paginator(branches, 25)
+    page = request.GET.get('page')
+    branches = paginator.get_page(page)
+    
+    context = {'branches': branches}
+    return render(request, 'admin/branches/list.html', context)
+
+# ATM Management
+@login_required
+@user_passes_test(is_admin)
+def atm_list(request):
+    atms = ATMMachine.objects.select_related('branch').all()
+    
+    paginator = Paginator(atms, 25)
+    page = request.GET.get('page')
+    atms = paginator.get_page(page)
+    
+    context = {'atms': atms}
+    return render(request, 'admin/atms/list.html', context)
+
+# Reports
+@login_required
+@user_passes_test(is_admin)
+def financial_reports(request):
+    today = timezone.now().date()
+    
+    # Daily summary
+    daily_transactions = Transaction.objects.filter(
+        created_at__date=today,
+        status='completed'
+    ).aggregate(
+        total_amount=Sum('amount'),
+        total_count=Count('id')
+    )
+    
+    # Monthly summary
+    monthly_transactions = Transaction.objects.filter(
+        created_at__date__gte=today.replace(day=1),
+        status='completed'
+    ).aggregate(
+        total_amount=Sum('amount'),
+        total_count=Count('id')
+    )
+    
+    context = {
+        'daily_transactions': daily_transactions,
+        'monthly_transactions': monthly_transactions,
+    }
+    return render(request, 'admin/reports/financial.html', context)
+
+@login_required
+@user_passes_test(is_admin)
+def operational_reports(request):
+    # System statistics
+    stats = {
+        'total_users': User.objects.count(),
+        'active_accounts': BankAccount.objects.filter(status='active').count(),
+        'pending_kyc': KYCDocument.objects.filter(status='pending').count(),
+        'active_loans': Loan.objects.filter(status='active').count(),
+        'online_atms': ATMMachine.objects.filter(status='online').count(),
+    }
+    
+    context = {'stats': stats}
+    return render(request, 'admin/reports/operational.html', context)
+
+# Support
+@login_required
+@user_passes_test(is_admin)
+def support_tickets(request):
+    status = request.GET.get('status', 'all')
+    priority = request.GET.get('priority', 'all')
+    
+    tickets = SupportTicket.objects.select_related('customer').all()
+    
+    if status != 'all':
+        tickets = tickets.filter(status=status)
+    
+    if priority != 'all':
+        tickets = tickets.filter(priority=priority)
+    
+    paginator = Paginator(tickets, 25)
+    page = request.GET.get('page')
+    tickets = paginator.get_page(page)
+    
+    context = {
+        'tickets': tickets,
+        'status': status,
+        'priority': priority,
+    }
+    return render(request, 'admin/support/tickets.html', context)
+
+# System Settings
+@login_required
+@user_passes_test(is_admin)
+def system_settings(request):
+    configurations = SystemConfiguration.objects.all()
+    
+    context = {'configurations': configurations}
+    return render(request, 'admin/system/settings.html', context)
+
+@login_required
+@user_passes_test(is_admin)
+def fee_structure(request):
+    fees = FeeStructure.objects.filter(is_active=True)
+    
+    context = {'fees': fees}
+    return render(request, 'admin/system/fees.html', context)
+
+@login_required
+@user_passes_test(is_admin)
+def audit_trail(request):
+    audits = AuditTrail.objects.select_related('user').order_by('-timestamp')[:100]
+    
+    context = {'audits': audits}
+    return render(request, 'admin/system/audit.html', context)
+
+# Security Events
+@login_required
+@user_passes_test(is_admin)
+def security_events(request):
+    severity = request.GET.get('severity', 'all')
+    
+    events = SecurityEvent.objects.select_related('user').all()
+    
+    if severity != 'all':
+        events = events.filter(severity=severity)
+    
+    paginator = Paginator(events, 25)
+    page = request.GET.get('page')
+    events = paginator.get_page(page)
+    
+    context = {
+        'events': events,
+        'severity': severity,
+    }
+    return render(request, 'admin/security/events.html', context)

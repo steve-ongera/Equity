@@ -42,6 +42,27 @@ urlpatterns = [
     path('notifications/', views.notifications, name='notifications'),
     path('account-statements/', views.account_statements, name='account_statements'),
     path('download-statement/<int:statement_id>/', views.download_statement, name='download_statement'),
+
+    #admin urls 
+    path('analytics/', views.analytics, name='analytics'),
+    
+    # User Management
+    path('users/', views.user_list, name='user_list'),
+    path('users/<int:user_id>/', views.user_detail, name='user_detail'),
+    path('kyc/', views.kyc_management, name='kyc_management'),
+    path('security/events/', views.security_events, name='security_events'),
+    path('accounts/', views.account_list, name='account_list'),
+    path('transactions/', views.transaction_list, name='transaction_list'),
+    path('loans/applications/', views.loan_applications, name='loan_applications'),
+    path('loans/active/', views.active_loans, name='active_loans'),
+    path('branches/', views.branch_list, name='branch_list'),
+    path('atms/', views.atm_list, name='atm_list'),
+    path('reports/financial/', views.financial_reports, name='financial_reports'),
+    path('reports/operational/', views.operational_reports, name='operational_reports'),
+    path('support/tickets/', views.support_tickets, name='support_tickets'),
+    path('system/settings/', views.system_settings, name='system_settings'),
+    path('system/fees/', views.fee_structure, name='fee_structure'),
+    path('system/audit/', views.audit_trail, name='audit_trail'),
     
   
 ]

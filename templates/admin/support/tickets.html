@@ -1,0 +1,226 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Support Tickets{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3">Support Tickets</h1>
+                <div>
+                    <span class="badge badge-danger">{{ tickets.paginator.count }} open tickets</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <form method="get" class="row align-items-end">
+                <div class="col-md-3">
+                    <label for="status" class="form-label">Status</label>
+                    <select name="status" id="status" class="form-control">
+                        <option value="all" {% if status == 'all' %}selected{% endif %}>All Status</option>
+                        <option value="open" {% if status == 'open' %}selected{% endif %}>Open</option>
+                        <option value="in_progress" {% if status == 'in_progress' %}selected{% endif %}>In Progress</option>
+                        <option value="resolved" {% if status == 'resolved' %}selected{% endif %}>Resolved</option>
+                        <option value="closed" {% if status == 'closed' %}selected{% endif %}>Closed</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="priority" class="form-label">Priority</label>
+                    <select name="priority" id="priority" class="form-control">
+                        <option value="all" {% if priority == 'all' %}selected{% endif %}>All Priorities</option>
+                        <option value="urgent" {% if priority == 'urgent' %}selected{% endif %}>Urgent</option>
+                        <option value="high" {% if priority == 'high' %}selected{% endif %}>High</option>
+                        <option value="medium" {% if priority == 'medium' %}selected{% endif %}>Medium</option>
+                        <option value="low" {% if priority == 'low' %}selected{% endif %}>Low</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="search" class="form-label">Search</label>
+                    <input type="text" name="search" id="search" class="form-control" placeholder="Ticket number or subject..." value="{{ search }}">
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="fas fa-search"></i> Search
+                    </button>
+                    <a href="{% url 'admin:support_tickets' %}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Clear
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tickets Table -->
+    <div class="card shadow">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Support Tickets</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Ticket #</th>
+                            <th>Customer</th>
+                            <th>Category</th>
+                            <th>Subject</th>
+                            <th>Priority</th>
+                            <th>Status</th>
+                            <th>Assigned To</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ticket in tickets %}
+                        <tr>
+                            <td><strong>{{ ticket.ticket_number }}</strong></td>
+                            <td>
+                                <div>
+                                    <strong>{{ ticket.customer.username }}</strong><br>
+                                    <small class="text-muted">{{ ticket.customer.first_name }} {{ ticket.customer.last_name }}</small>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge badge-secondary">{{ ticket.get_category_display }}</span>
+                            </td>
+                            <td>
+                                <div class="text-truncate" style="max-width: 200px;" title="{{ ticket.subject }}">
+                                    {{ ticket.subject }}
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge badge-{% if ticket.priority == 'urgent' %}danger{% elif ticket.priority == 'high' %}warning{% elif ticket.priority == 'medium' %}info{% else %}secondary{% endif %}">
+                                    {{ ticket.get_priority_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge badge-{% if ticket.status == 'resolved' %}success{% elif ticket.status == 'in_progress' %}info{% elif ticket.status == 'open' %}warning{% else %}secondary{% endif %}">
+                                    {{ ticket.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if ticket.assigned_to %}
+                                {{ ticket.assigned_to.username }}
+                                {% else %}
+                                <span class="text-muted">Unassigned</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ ticket.created_at|date:"M d, Y H:i" }}</td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <button class="btn btn-sm btn-outline-primary" onclick="viewTicket('{{ ticket.ticket_number }}')" title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    {% if ticket.status == 'open' %}
+                                    <button class="btn btn-sm btn-outline-info" onclick="assignTicket('{{ ticket.ticket_number }}')" title="Assign">
+                                        <i class="fas fa-user-plus"></i>
+                                    </button>
+                                    {% endif %}
+                                    {% if ticket.status != 'closed' and ticket.status != 'resolved' %}
+                                    <button class="btn btn-sm btn-outline-success" onclick="resolveTicket('{{ ticket.ticket_number }}')" title="Resolve">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center py-4">
+                                <div class="text-muted">
+                                    <i class="fas fa-headset fa-3x mb-3"></i>
+                                    <p>No support tickets found</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if tickets.has_other_pages %}
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center">
+                    {% if tickets.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ tickets.previous_page_number }}{% if status != 'all' %}&status={{ status }}{% endif %}{% if priority != 'all' %}&priority={{ priority }}{% endif %}{% if search %}&search={{ search }}{% endif %}">Previous</a>
+                    </li>
+                    {% endif %}
+
+                    {% for num in tickets.paginator.page_range %}
+                    {% if tickets.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                    {% elif num > tickets.number|add:'-3' and num < tickets.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}{% if status != 'all' %}&status={{ status }}{% endif %}{% if priority != 'all' %}&priority={{ priority }}{% endif %}{% if search %}&search={{ search }}{% endif %}">{{ num }}</a>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+
+                    {% if tickets.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ tickets.next_page_number }}{% if status != 'all' %}&status={{ status }}{% endif %}{% if priority != 'all' %}&priority={{ priority }}{% endif %}{% if search %}&search={{ search }}{% endif %}">Next</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Ticket Details Modal -->
+<div class="modal fade" id="ticketModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Ticket Details</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="ticketContent">
+                    <!-- Ticket details will be loaded here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function viewTicket(ticketNumber) {
+    $('#ticketModal').modal('show');
+    alert('View ticket details for: ' + ticketNumber);
+}
+
+function assignTicket(ticketNumber) {
+    const assignTo = prompt('Enter username to assign this ticket to:');
+    if (assignTo) {
+        alert('Ticket assigned to: ' + assignTo);
+        location.reload();
+    }
+}
+
+function resolveTicket(ticketNumber) {
+    const resolution = prompt('Enter resolution notes:');
+    if (resolution) {
+        alert('Ticket resolved successfully');
+        location.reload();
+    }
+}
+</script>
+{% endblock %}
